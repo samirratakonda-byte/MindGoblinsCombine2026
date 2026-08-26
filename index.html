@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🧌 Mind Goblins Combine</title>
+<style>
+  :root {
+    --surface-1: #fcfcfb; --page: #f9f9f7;
+    --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #898781;
+    --gridline: #e1e0d9; --border: rgba(11,11,11,0.10);
+    --accent: #4a3aa7; --accent-soft: #eeebfa; --accent-dark: #382c80;
+    --good: #0ca30c; --good-soft: #e6f6e6;
+    --warn: #fab219; --warn-soft: #fff6e0;
+    --critical: #d03b3b;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      --surface-1: #1a1a19; --page: #0d0d0d;
+      --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #898781;
+      --gridline: #2c2c2a; --border: rgba(255,255,255,0.10);
+      --accent: #9085e9; --accent-soft: #2a2350; --accent-dark: #b4abf0;
+      --good: #0ca30c; --good-soft: #10331a;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; background: var(--page); color: var(--text-primary); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  body { padding-bottom: 60px; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 20px 16px 40px; }
+  header.top { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; padding:18px 16px; background: var(--accent); color:#fff; border-radius:0 0 18px 18px; margin-bottom:18px; }
+  header.top h1 { margin:0; font-size:20px; display:flex; align-items:center; gap:8px; }
+  header.top .sub { font-size:12px; opacity:.85; margin-top:2px; }
+  .top-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .btn { font:inherit; cursor:pointer; border:none; border-radius:10px; padding:8px 14px; font-size:13px; font-weight:600; background: var(--accent); color:#fff; transition: opacity .15s; }
+  .btn:hover { opacity:.88; } .btn:disabled { opacity:.4; cursor:not-allowed; }
+  .btn.secondary { background: var(--surface-1); color: var(--text-primary); border:1px solid var(--border); }
+  .btn.ghost { background:transparent; color:#fff; border:1px solid rgba(255,255,255,0.5); }
+  .btn.danger { background: var(--critical); color:#fff; }
+  .btn.small { padding:5px 10px; font-size:12px; border-radius:8px; }
+  nav.tabs { display:flex; gap:6px; margin-bottom:18px; border-bottom:1px solid var(--gridline); overflow-x:auto; }
+  nav.tabs button { font:inherit; cursor:pointer; border:none; background:transparent; padding:10px 14px; font-size:14px; font-weight:600; color:var(--text-muted); border-bottom:3px solid transparent; white-space:nowrap; }
+  nav.tabs button.active { color:var(--accent); border-bottom-color:var(--accent); }
+  .card { background:var(--surface-1); border:1px solid var(--border); border-radius:14px; padding:18px; margin-bottom:16px; }
+  .card h2 { margin:0 0 4px; font-size:16px; }
+  .card h3 { margin:0 0 4px; font-size:14px; }
+  .card .desc { color:var(--text-secondary); font-size:13px; margin:0 0 14px; }
+  .badge { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; padding:3px 8px; border-radius:999px; background:var(--accent-soft); color:var(--accent-dark); }
+  .badge.good { background:var(--good-soft); color:var(--good); }
+  .badge.warn { background:var(--warn-soft); color:#8a5a00; }
+  .badge.muted { background:var(--gridline); color:var(--text-secondary); }
+  .sync-status { font-size:11px; color:rgba(255,255,255,0.85); display:flex; align-items:center; gap:5px; }
+  .dot { width:7px; height:7px; border-radius:50%; background:#7be07b; } .dot.off { background:#f2c96b; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:7px 6px; border-bottom:1px solid var(--gridline); }
+  th { color:var(--text-muted); font-weight:600; font-size:10.5px; text-transform:uppercase; letter-spacing:.03em; }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  td.ctr, th.ctr { text-align:center; }
+  input[type=number], input[type=text], input[type=password], select, textarea {
+    font:inherit; padding:6px 8px; border-radius:8px; border:1px solid var(--border);
+    background: var(--surface-1); color:var(--text-primary); width:100%;
+  }
+  input[type=number] { text-align:right; }
+  .hole-input { width:38px !important; padding:4px 2px !important; text-align:center !important; font-size:12px; }
+  .event-tab-list { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+  .event-chip { padding:6px 12px; border-radius:999px; border:1px solid var(--border); background:var(--surface-1); font-size:12px; font-weight:600; cursor:pointer; color:var(--text-secondary); white-space:nowrap; }
+  .event-chip.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:50; padding:16px; }
+  .modal { background:var(--surface-1); border-radius:14px; padding:22px; max-width:420px; width:100%; max-height:85vh; overflow:auto; }
+  .modal h3 { margin-top:0; } .modal .row { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+  .toast { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:var(--text-primary); color:var(--surface-1); padding:10px 16px; border-radius:10px; font-size:13px; z-index:60; opacity:0; transition:opacity .2s; pointer-events:none; }
+  .toast.show { opacity:.95; }
+  .field { margin-bottom:12px; }
+  .field label { display:block; font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:4px; }
+  .muted-note { font-size:12px; color:var(--text-muted); }
+  .empty-state { text-align:center; padding:30px 10px; color:var(--text-muted); font-size:13px; }
+  a.link { color:var(--accent); cursor:pointer; text-decoration:underline; font-size:12px; }
+  .code-box { font-family:ui-monospace, monospace; background:var(--gridline); padding:6px 10px; border-radius:8px; font-size:12px; word-break:break-all; }
+  hr.sep { border:none; border-top:1px solid var(--gridline); margin:16px 0; }
+  .id-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap:8px; margin-top:10px; }
+  .id-card { border:2px solid var(--border); border-radius:12px; padding:12px; text-align:center; cursor:pointer; background:var(--surface-1); font-weight:700; font-size:13px; }
+  .id-card:hover { border-color:var(--accent); }
+  .id-card .role-tag { display:block; font-size:10px; font-weight:600; color:var(--text-muted); margin-top:4px; text-transform:uppercase; }
+  .std-table td, .std-table th { white-space:nowrap; }
+  .std-table th, .std-table td { padding:5px 3px; }
+  .std-head { vertical-align:bottom; }
+  .std-head-icon { font-size:15px; line-height:1.15; }
+  .std-head-label { font-size:8.5px; font-weight:700; text-transform:uppercase; letter-spacing:.02em; color:var(--text-muted); white-space:nowrap; }
+  .std-team-name { max-width:108px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12.5px; }
+  .std-cell { text-align:center; }
+  .std-pts { font-weight:800; font-size:13px; line-height:1.2; }
+  .std-raw { font-size:9.5px; color:var(--text-muted); margin-top:1px; white-space:nowrap; }
+  .std-badge { font-size:10px; margin-left:1px; }
+  @media (max-width: 900px) { .std-table th, .std-table td { padding:4px 2px; } .std-head-label { display:none; } }
+  .team-col-label { font-size:11px; }
+  .locked-box { text-align:center; padding:40px 16px; color:var(--text-muted); }
+  .locked-box .lock-icon { font-size:36px; margin-bottom:10px; }
+  .matchup-row { display:flex; align-items:center; gap:10px; padding:10px; border:1px solid var(--border); border-radius:10px; margin-bottom:8px; flex-wrap:wrap; }
+  .matchup-row .side { flex:1; min-width:120px; font-weight:600; font-size:13px; }
+  .matchup-row .side.winner { color: var(--good); }
+  .team-roster-box { border:1px solid var(--border); border-radius:10px; padding:10px 12px; flex:1; min-width:150px; }
+  .team-roster-box h4 { margin:0 0 6px; font-size:13px; }
+  .team-roster-box ul { margin:0; padding-left:18px; font-size:12.5px; }
+  .golf-team-card { border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:10px; }
+  .golf-holes-row { display:flex; gap:4px; overflow-x:auto; padding:6px 0; }
+  .golf-hole-cell { display:flex; flex-direction:column; align-items:center; gap:2px; flex-shrink:0; }
+  .golf-hole-cell label { font-size:9px; color:var(--text-muted); }
+  .quiz-q-block { border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:10px; }
+  .blurred { filter: blur(6px); pointer-events:none; user-select:none; }
+  .blur-wrap { position:relative; }
+  .blur-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" class="toast"></div>
+<script>
+(function(){
+"use strict";
+
+/* ============================== CONSTANTS ============================== */
+const API_STATE_URL = "/api/state";
+const POLL_MS = 6000;
+const DEFAULT_POINT_SCALE = [14,13,12,11,10,9,8,7,6,5,4,3,2,1];
+
+const TEAM_DEFS = [
+  { id:"t1",  name:"Let a Naysayer Know",  role:"admin" },
+  { id:"t2",  name:"Team Kase",            role:"member", coOwnerCount:2 },
+  { id:"t3",  name:"P Had Twoooo",         role:"member" },
+  { id:"t4",  name:"Bu-Bu Bith-Booster",   role:"member" },
+  { id:"t5",  name:"Pressed Unt",          role:"admin" },
+  { id:"t6",  name:"T-Zo Touchdown",       role:"member" },
+  { id:"t7",  name:"NaJihadists",          role:"member" },
+  { id:"t8",  name:"Rat Pack",             role:"owner" },
+  { id:"t9",  name:"Splurge Garglers",     role:"member" },
+  { id:"t10", name:"CTESPN",               role:"admin" },
+  { id:"t11", name:"Team Currier",         role:"member" },
+  { id:"t12", name:"The Guids",            role:"member" },
+  { id:"t13", name:"Team Hall",            role:"member" },
+  { id:"t14", name:"Italian Stallions",    role:"admin" },
+];
+const CHUCK_ID = "chuck";
+
+const EVENTS = [
+  { id:"cameo",    name:"Drama's Cameo",         short:"Cameo",    icon:"🎬", type:"rank" },
+  { id:"golf",     name:"Mini-Golf",             short:"Golf",     icon:"⛳", type:"golf18" },
+  { id:"dash",     name:"40-Yard Dash",          short:"Dash",     icon:"🏃", type:"time" },
+  { id:"wiffle",   name:"Wiffle Ball",           short:"Wiffle",   icon:"🏏", type:"team2", teamCount:2, throughEventId:"dash", winPoints:5 },
+  { id:"ppk",      name:"Punt Pass Kick",        short:"PPK",      icon:"🦵", type:"sum3", subLabels:["Punt","Pass","Kick"] },
+  { id:"football", name:"Touch Football",        short:"Football", icon:"🏈", type:"team4", teamCount:4, throughEventId:"ppk", winPointsPerGame:2 },
+  { id:"quiz",     name:"Ball Knowledge Quiz",   short:"Quiz",     icon:"🧠", type:"quiz" },
+  { id:"dogsled",  name:"Dogsled",               short:"Dogsled",  icon:"🛷", type:"time" },
+  { id:"baseball", name:"Baseball",              short:"Baseball", icon:"⚾", type:"team2", teamCount:2, throughEventId:"dogsled", winPoints:5 },
+  { id:"threept",  name:"3PT Pool Contest",      short:"3PT",      icon:"🏀", type:"makes" },
+];
+
+const defaultState = () => ({
+  leagueName: "Mind Goblins Combine",
+  teams: TEAM_DEFS.map(t => ({ id:t.id, name:t.name, role:t.role, coOwnerCount: t.coOwnerCount||1 })),
+  contributor: { id: CHUCK_ID, name:"Chuck" },
+  pinHashes: {},
+  pointScale: DEFAULT_POINT_SCALE.slice(),
+  raw: {},            // { eventId: { teamId: <raw data> } }
+  scores: {},         // { eventId: { teamId: points } }
+  teamAssignments: {},// { eventId: { generated, basisThroughEventId, teams: {"1":[ids],...} } }
+  matchResults: {},   // { eventId: {...} }
+  cancelledEvents: [], // [eventId, ...] — cancelled events are excluded from standings entirely
+  quiz: {
+    questions: Array.from({length:10}, () => ({ q:"", a:"" })),
+    bonusQ: "", bonusA: null,
+    released: false, scoresReleased: false,
+    started: {},        // { teamId: true } — once set, "Take Quiz" never reappears for that team (only an admin Reset clears it)
+    submissions: {}    // { teamId: { answers:[...10], bonus:number, submittedAt } }
+  },
+  meta: { updatedAt: 0, updatedBy: "" }
+});
+
+/* ============================== LOCAL STORAGE ============================== */
+const LS = {
+  get(k,d){ try{ const v=localStorage.getItem(k); return v===null?d:JSON.parse(v); }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+let state = LS.get("mgc_state", null);
+let myIdentityId = LS.get("mgc_myIdentityId", null);
+let syncOk = false;
+let pollTimer = null;
+
+/* ============================== HASH HELPER ============================== */
+async function hashPin(identityId, pin) {
+  const enc = new TextEncoder().encode("mgc-salt::" + identityId + "::" + pin);
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+/* ============================== SYNC LAYER (real server, /api/state backed by Vercel KV) ============================== */
+async function apiGetState() {
+  const res = await fetch(API_STATE_URL, { headers: { "Accept": "application/json" } });
+  if (!res.ok) throw new Error("get failed");
+  return await res.json();
+}
+async function apiSaveState(obj) {
+  const res = await fetch(API_STATE_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(obj) });
+  if (!res.ok) throw new Error("save failed");
+}
+function setSyncOk(v){ syncOk=v; const el=document.getElementById("sync-dot-wrap"); if (el) el.innerHTML = syncStatusHtml(); }
+function syncStatusHtml(){ return '<span class="sync-status"><span class="dot '+(syncOk?"":"off")+'"></span>'+(syncOk?"Live":"Offline (local only)")+'</span>'; }
+async function pullState(showToastOnFail){
+  try {
+    const remote = await apiGetState();
+    if (remote && (!state || (remote.meta && remote.meta.updatedAt >= (state.meta?state.meta.updatedAt:0)))) { state = remote; LS.set("mgc_state", state); }
+    setSyncOk(true); render();
+  } catch(e) { setSyncOk(false); if (showToastOnFail) toast("Can't reach the server — showing last saved data."); }
+}
+async function saveState(){
+  state.meta.updatedAt = Date.now();
+  state.meta.updatedBy = myIdentityId || "";
+  LS.set("mgc_state", state);
+  render();
+  try { await apiSaveState(state); setSyncOk(true); }
+  catch(e) { setSyncOk(false); toast("Saved on this device — server sync failed, will retry."); }
+}
+function startPolling(){ if (pollTimer) clearInterval(pollTimer); pollTimer = setInterval(()=>pullState(false), POLL_MS); }
+
+/* ============================== TOAST ============================== */
+let toastTimer=null;
+function toast(msg){ const el=document.getElementById("toast"); el.textContent=msg; el.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove("show"),3200); }
+
+/* ============================== IDENTITY / ROLE HELPERS ============================== */
+function allIdentities(){ return state.teams.concat([{ id: state.contributor.id, name: state.contributor.name, role:"contributor" }]); }
+function myIdentity(){ return allIdentities().find(i => i.id === myIdentityId) || null; }
+function myRole(){ const me = myIdentity(); return me ? me.role : null; }
+function isOwner(){ return myRole() === "owner"; }
+function isAdmin(){ return myRole() === "owner" || myRole() === "admin"; }
+function isContributor(){ return myRole() === "contributor"; }
+function teamById(id){ return state.teams.find(t => t.id === id); }
+function nameOf(id){ if (id === CHUCK_ID) return state.contributor.name; const t = teamById(id); return t ? t.name : "?"; }
+
+/* ============================== EVENT ENGINE ============================== */
+function eventById(id){ return EVENTS.find(e => e.id === id); }
+function eventIndex(id){ return EVENTS.findIndex(e => e.id === id); }
+function pts(rank){ return state.pointScale[rank-1]; }
+
+function parseTimeToSeconds(str){
+  if (!str) return null;
+  const m = String(str).trim().match(/^(\d+):(\d{1,2}(?:\.\d+)?)$/);
+  if (!m) { const n = Number(str); return isNaN(n)?null:n; }
+  return Number(m[1])*60 + Number(m[2]);
+}
+function formatSeconds(sec){
+  if (sec == null || isNaN(sec)) return "—";
+  const m = Math.floor(sec/60), s = sec - m*60;
+  return m + ":" + (s<10?"0":"") + (Number.isInteger(s)?s:s.toFixed(1));
+}
+
+/* Fuzzy answer grading — tolerant of typos/misspellings, not just exact string match */
+function normalizeAnswer(s){
+  return String(s||"").trim().toLowerCase().replace(/[^\w\s]/g,"").replace(/\s+/g," ").trim();
+}
+function levenshtein(a,b){
+  const m=a.length, n=b.length;
+  if (m===0) return n; if (n===0) return m;
+  let prev = Array.from({length:n+1}, (_,j)=>j);
+  for (let i=1;i<=m;i++){
+    const cur = [i];
+    for (let j=1;j<=n;j++){
+      cur[j] = a[i-1]===b[j-1] ? prev[j-1] : 1 + Math.min(prev[j-1], prev[j], cur[j-1]);
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+function answersMatch(submitted, key){
+  const a = normalizeAnswer(submitted), k = normalizeAnswer(key);
+  if (!k) return false; // no answer key entered for this question — never auto-correct
+  if (!a) return false;
+  if (a === k) return true;
+  const dist = levenshtein(a,k);
+  const threshold = k.length <= 4 ? 1 : (k.length <= 9 ? 2 : 3);
+  return dist <= threshold;
+}
+
+// Generic ranking: entries = [{teamId, sortKey:[...] (ascending = better), raw:{display}}]
+function assignRanksAndPoints(eventId, entries){
+  entries.sort((a,b) => {
+    for (let i=0;i<Math.max(a.sortKey.length,b.sortKey.length);i++){
+      const av=a.sortKey[i], bv=b.sortKey[i];
+      if (av===bv) continue;
+      return av-bv;
+    }
+    return 0;
+  });
+  const result = {};
+  entries.forEach((e,i) => { result[e.teamId] = { rank:i+1, points: pts(i+1), raw:e.raw }; });
+  return result;
+}
+
+function isCancelled(eventId){ return (state.cancelledEvents||[]).includes(eventId); }
+
+function computeEventResults(eventId){
+  const ev = eventById(eventId);
+  if (isCancelled(eventId)) return {};
+  const raw = state.raw[eventId] || {};
+  if (ev.type === "rank") {
+    const entries = [];
+    state.teams.forEach(t => {
+      const placement = raw[t.id];
+      if (typeof placement === "number") entries.push({ teamId:t.id, sortKey:[placement], raw:{ display:"#"+placement } });
+    });
+    return rankBasedResult(entries);
+  }
+  if (ev.type === "time") {
+    const entries = [];
+    state.teams.forEach(t => {
+      const secs = raw[t.id];
+      if (typeof secs === "number") entries.push({ teamId:t.id, sortKey:[secs, t.name], raw:{ display: formatSeconds(secs) } });
+    });
+    return rankBasedResult(entries);
+  }
+  if (ev.type === "sum3") {
+    const entries = [];
+    state.teams.forEach(t => {
+      const v = raw[t.id];
+      if (v && (typeof v.a === "number" || typeof v.b === "number" || typeof v.c === "number")) {
+        const sum = (v.a||0)+(v.b||0)+(v.c||0);
+        entries.push({ teamId:t.id, sortKey:[-sum, t.name], raw:{ display: sum + " yds", sum } });
+      }
+    });
+    return rankBasedResult(entries);
+  }
+  if (ev.type === "makes") {
+    const entries = [];
+    state.teams.forEach(t => {
+      const v = raw[t.id];
+      if (typeof v === "number") entries.push({ teamId:t.id, sortKey:[-v, t.name], raw:{ display: v + " made" } });
+    });
+    return rankBasedResult(entries);
+  }
+  if (ev.type === "golf18") {
+    const entries = [];
+    state.teams.forEach(t => {
+      const v = raw[t.id];
+      if (!v || !v.subs || !v.subs.length) return;
+      const subs = v.subs;
+      const anyEntered = subs.some(arr => arr.some(x => typeof x === "number"));
+      if (!anyEntered) return;
+      const subTotals = subs.map(arr => arr.reduce((s,x)=> s + (typeof x==="number"?x:0), 0));
+      const total = subTotals.reduce((a,b)=>a+b,0) / subs.length;
+      const holeInOnes = subs.reduce((cnt,arr) => cnt + arr.filter(x => x===1).length, 0);
+      const tieHoles = [];
+      for (let h=17; h>=0; h--) {
+        const avgHole = subs.reduce((s,arr)=> s + (typeof arr[h]==="number"?arr[h]:0), 0) / subs.length;
+        tieHoles.push(avgHole);
+      }
+      entries.push({ teamId:t.id, sortKey:[total, -holeInOnes, ...tieHoles, t.name],
+        raw:{ display: total + (subTotals.length>1 ? " (" + subTotals.join(" / ") + ")" : ""), total, holeInOnes, subTotals } });
+    });
+    return rankBasedResult(entries);
+  }
+  if (ev.type === "team2") return computeTeam2Results(ev);
+  if (ev.type === "team4") return computeTeam4Results(ev);
+  if (ev.type === "quiz") return computeQuizResults();
+  return {};
+}
+function rankBasedResult(entries){
+  const ranked = assignRanksAndPoints(null, entries);
+  const out = {};
+  Object.keys(ranked).forEach(tid => {
+    out[tid] = { points: ranked[tid].points, display: ranked[tid].raw.display, raw: ranked[tid].raw, rank: ranked[tid].rank, badge: ranked[tid].rank<=3 ? ["🥇","🥈","🥉"][ranked[tid].rank-1] : null };
+  });
+  return out;
+}
+function computeTeam2Results(ev){
+  const ta = state.teamAssignments[ev.id];
+  const mr = state.matchResults[ev.id];
+  const out = {};
+  if (!ta || !ta.generated) return out;
+  const winner = mr && mr.winner;
+  ["1","2"].forEach(slot => {
+    const members = ta.teams[slot] || [];
+    members.forEach(tid => {
+      if (!winner) { out[tid] = { points:null, display:"pending", badge:null }; return; }
+      const won = winner === slot;
+      out[tid] = { points: won ? ev.winPoints : 0, display: won ? "W" : "L", badge: won ? "W" : null };
+    });
+  });
+  return out;
+}
+function computeTeam4Results(ev){
+  const ta = state.teamAssignments[ev.id];
+  const mr = state.matchResults[ev.id] || {};
+  const out = {};
+  if (!ta || !ta.generated) return out;
+  const slots = ["1","2","3","4"];
+  const winCounts = {"1":0,"2":0,"3":0,"4":0};
+  let anyPlayed = false;
+  for (let i=0;i<slots.length;i++){
+    for (let j=i+1;j<slots.length;j++){
+      const key = slots[i]+"-"+slots[j];
+      const w = mr[key];
+      if (w) { anyPlayed = true; winCounts[w]++; }
+    }
+  }
+  const maxWins = Math.max(...slots.map(s=>winCounts[s]));
+  const leaders = slots.filter(s => winCounts[s]===maxWins);
+  const uniqueLeader = anyPlayed && maxWins>0 && leaders.length===1 ? leaders[0] : null;
+  slots.forEach(slot => {
+    const members = ta.teams[slot] || [];
+    members.forEach(tid => {
+      const w = winCounts[slot];
+      out[tid] = { points: anyPlayed ? w*ev.winPointsPerGame : null, display: anyPlayed ? "("+w+"W)" : "pending", badge: slot===uniqueLeader ? "W" : null };
+    });
+  });
+  return out;
+}
+function computeQuizResults(){
+  const q = state.quiz;
+  const out = {};
+  if (!q.scoresReleased) return out;
+  const key = q.questions.map(x => x.a||"");
+  const entries = [];
+  state.teams.forEach(t => {
+    const sub = q.submissions[t.id];
+    if (!sub) { out[t.id] = { points:null, display:"no submission", badge:null }; return; }
+    const correct = sub.answers.reduce((c,ans,i) => c + (answersMatch(ans, key[i]) ? 1 : 0), 0);
+    const bonusDiff = (typeof sub.bonus === "number" && typeof q.bonusA === "number") ? Math.abs(sub.bonus - q.bonusA) : Infinity;
+    entries.push({ teamId:t.id, sortKey:[-correct, bonusDiff, t.name], raw:{ display: correct + "/" + q.questions.length, correct } });
+  });
+  const ranked = assignRanksAndPoints(null, entries);
+  Object.keys(ranked).forEach(tid => {
+    out[tid] = { points: ranked[tid].points, display: ranked[tid].raw.display, rank: ranked[tid].rank, badge: ranked[tid].rank<=3 ? ["🥇","🥈","🥉"][ranked[tid].rank-1] : null };
+  });
+  return out;
+}
+
+function allEventResults(){
+  const res = {};
+  EVENTS.forEach(ev => { res[ev.id] = computeEventResults(ev.id); });
+  return res;
+}
+function totalsFromResults(res){
+  const totals = {};
+  state.teams.forEach(t => { totals[t.id] = 0; });
+  EVENTS.forEach(ev => {
+    const r = res[ev.id] || {};
+    state.teams.forEach(t => { const v = r[t.id]; if (v && typeof v.points === "number") totals[t.id] += v.points; });
+  });
+  return totals;
+}
+function standingsThroughEvent(eventId){
+  // cumulative totals using only events up to and including eventId's index
+  const idx = eventId ? eventIndex(eventId) : EVENTS.length-1;
+  const res = allEventResults();
+  const totals = {};
+  state.teams.forEach(t => { totals[t.id] = 0; });
+  EVENTS.forEach((ev,i) => {
+    if (i>idx) return;
+    const r = res[ev.id] || {};
+    state.teams.forEach(t => { const v = r[t.id]; if (v && typeof v.points === "number") totals[t.id] += v.points; });
+  });
+  return state.teams.map(t => ({ id:t.id, name:t.name, total: totals[t.id] })).sort((a,b)=> b.total-a.total || a.name.localeCompare(b.name));
+}
+
+/* ============================== TEAM GENERATION ============================== */
+function generateTeams(eventId){
+  const ev = eventById(eventId);
+  const std = standingsThroughEvent(ev.throughEventId);
+  const teams = {};
+  if (ev.teamCount === 2) {
+    teams["1"]=[]; teams["2"]=[];
+    std.forEach((s,i) => { (i%2===0?teams["1"]:teams["2"]).push(s.id); });
+  } else if (ev.teamCount === 4) {
+    teams["1"]=[]; teams["2"]=[]; teams["3"]=[]; teams["4"]=[];
+    std.forEach((s,i) => { teams[String((i%4)+1)].push(s.id); });
+  }
+  state.teamAssignments[eventId] = { generated:true, basisThroughEventId: ev.throughEventId, teams };
+  if (ev.type === "team2") state.matchResults[eventId] = { winner:null };
+  if (ev.type === "team4") {
+    const mr = {}; const slots=["1","2","3","4"];
+    for (let i=0;i<slots.length;i++) for (let j=i+1;j<slots.length;j++) mr[slots[i]+"-"+slots[j]] = null;
+    state.matchResults[eventId] = mr;
+  }
+}
+
+/* ============================== UI STATE ============================== */
+let activeTab = "standings";
+let activeScoringEvent = EVENTS[0].id;
+let quizAnswerDraft = null;
+
+function el(html){ const d=document.createElement("div"); d.innerHTML=html; return d.firstElementChild; }
+function escapeHtml(str){ return String(str).replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+
+/* ============================== RENDER ROOT ============================== */
+function render(){
+  const app = document.getElementById("app");
+  if (!state) { app.innerHTML = renderLoading(); return; }
+  if (!myIdentityId || !myIdentity()) { app.innerHTML = renderIdentityGate(); bindIdentityGate(); return; }
+  app.innerHTML = renderShell();
+  bindShell();
+}
+
+function renderLoading(){
+  return `
+  <div class="wrap" style="max-width:480px; padding-top:80px; text-align:center;">
+    <div style="font-size:44px;">🧌</div>
+    <h1 style="margin:6px 0 2px;">Mind Goblins Combine</h1>
+    <p class="muted-note" id="loading-note">Connecting to the tracker…</p>
+  </div>`;
+}
+
+/* ---------- Identity gate (team select + PIN) ---------- */
+function renderIdentityGate(){
+  const ids = allIdentities();
+  const cards = ids.map(i => `<div class="id-card" data-id="${i.id}">${escapeHtml(i.name)}<span class="role-tag">${i.role}</span></div>`).join("");
+  return `
+  <div class="wrap" style="max-width:640px; padding-top:40px;">
+    <div style="text-align:center; margin-bottom:18px;">
+      <div style="font-size:40px;">🧌</div>
+      <h1 style="margin:6px 0 2px;">Who are you?</h1>
+      <p class="muted-note">Pick your team to log in. First login for a team sets its PIN.</p>
+    </div>
+    <div class="id-grid">${cards}</div>
+    <p class="muted-note" id="ig-status" style="text-align:center; margin-top:14px;"></p>
+  </div>`;
+}
+function bindIdentityGate(){
+  document.querySelectorAll(".id-card").forEach(c => {
+    c.onclick = () => onIdentityPicked(c.dataset.id);
+  });
+}
+function onIdentityPicked(id){
+  const hasPin = !!state.pinHashes[id];
+  if (!hasPin) openSetPinModal(id);
+  else openEnterPinModal(id);
+}
+function openSetPinModal(id){
+  const name = nameOf(id);
+  const backdrop = el(`<div class="modal-backdrop"><div class="modal">
+    <h3>Set a PIN for ${escapeHtml(name)}</h3>
+    <p class="desc">No PIN exists yet for this team — set one now. Anyone logging in as ${escapeHtml(name)} later will need it.</p>
+    <div class="field"><label>New PIN</label><input type="password" id="pin1"></div>
+    <div class="field"><label>Confirm PIN</label><input type="password" id="pin2"></div>
+    <div class="row"><button class="btn secondary" id="m-cancel">Cancel</button><button class="btn" id="m-ok">Set PIN &amp; log in</button></div>
+  </div></div>`);
+  document.body.appendChild(backdrop);
+  backdrop.querySelector("#m-cancel").onclick = () => backdrop.remove();
+  backdrop.querySelector("#m-ok").onclick = async () => {
+    const p1 = backdrop.querySelector("#pin1").value, p2 = backdrop.querySelector("#pin2").value;
+    if (!p1 || p1 !== p2) { toast("PINs don't match."); return; }
+    state.pinHashes[id] = await hashPin(id, p1);
+    myIdentityId = id; LS.set("mgc_myIdentityId", id);
+    backdrop.remove();
+    await saveState();
+    toast("Logged in as " + name + ".");
+  };
+}
+function openEnterPinModal(id){
+  const name = nameOf(id);
+  const backdrop = el(`<div class="modal-backdrop"><div class="modal">
+    <h3>Enter PIN for ${escapeHtml(name)}</h3>
+    <div class="field"><input type="password" id="pin1" placeholder="PIN"></div>
+    <div class="row"><button class="btn secondary" id="m-cancel">Cancel</button><button class="btn" id="m-ok">Log in</button></div>
+  </div></div>`);
+  document.body.appendChild(backdrop);
+  backdrop.querySelector("#m-cancel").onclick = () => backdrop.remove();
+  backdrop.querySelector("#m-ok").onclick = async () => {
+    const p1 = backdrop.querySelector("#pin1").value;
+    const h = await hashPin(id, p1);
+    if (h === state.pinHashes[id]) {
+      myIdentityId = id; LS.set("mgc_myIdentityId", id);
+      backdrop.remove(); render();
+    } else {
+      const d = backdrop.querySelector(".desc") || backdrop.querySelector("h3");
+      toast("Incorrect PIN.");
+    }
+  };
+}
+
+/* ---------- Main shell ---------- */
+function renderShell(){
+  const me = myIdentity();
+  return `
+  <header class="top">
+    <div><h1>🧌 ${escapeHtml(state.leagueName)}</h1>
+      <div class="sub">Logged in as <strong>${escapeHtml(me.name)}</strong> (${me.role})</div></div>
+    <div class="top-actions">
+      <span id="sync-dot-wrap">${syncStatusHtml()}</span>
+      <button class="btn ghost" id="btn-settings">⚙ Settings</button>
+    </div>
+  </header>
+  <div class="wrap">
+    <nav class="tabs">
+      <button data-tab="standings" class="${activeTab==='standings'?'active':''}">🏆 Standings</button>
+      <button data-tab="quiz" class="${activeTab==='quiz'?'active':''}">🧠 Ball Knowledge Quiz</button>
+      <button data-tab="teams" class="${activeTab==='teams'?'active':''}">👥 Team Assignments</button>
+      ${isAdmin() ? `<button data-tab="scoring" class="${activeTab==='scoring'?'active':''}">📋 Scoring</button>` : ""}
+    </nav>
+    <div id="tab-content">
+      ${activeTab==="standings" ? renderStandings() : ""}
+      ${activeTab==="quiz" ? renderQuizTab() : ""}
+      ${activeTab==="teams" ? renderTeamAssignments() : ""}
+      ${activeTab==="scoring" && isAdmin() ? renderScoring() : ""}
+    </div>
+  </div>`;
+}
+
+/* ---------- Standings ---------- */
+function renderStandings(){
+  const res = allEventResults();
+  const totals = totalsFromResults(res);
+  const rows = state.teams.map(t => ({ ...t, total: totals[t.id] })).sort((a,b)=> b.total-a.total || a.name.localeCompare(b.name));
+  const headerCells = EVENTS.map(ev => `<th class="ctr std-head" title="${escapeHtml(ev.name)}" ${isCancelled(ev.id)?'style="opacity:.45;"':''}>
+      <div class="std-head-icon">${ev.icon}</div><div class="std-head-label">${escapeHtml(ev.short)}</div>
+      ${isCancelled(ev.id)?'<div class="std-head-label">(out)</div>':''}
+    </th>`).join("");
+  const bodyRows = rows.map((t,i) => {
+    const cells = EVENTS.map(ev => {
+      if (isCancelled(ev.id)) return `<td class="std-cell" style="opacity:.35;">—</td>`;
+      const r = (res[ev.id]||{})[t.id];
+      if (!r || r.points===null || r.points===undefined) return `<td class="std-cell">—</td>`;
+      return `<td class="std-cell"><div class="std-pts">${r.points}${r.badge?`<span class="std-badge">${r.badge}</span>`:""}</div><div class="std-raw">${escapeHtml(String(r.display))}</div></td>`;
+    }).join("");
+    return `<tr><td class="ctr">${i+1}</td><td class="std-team-name">${escapeHtml(t.name)}</td>${cells}<td class="num"><strong style="font-size:14px;">${t.total}</strong></td></tr>`;
+  }).join("");
+  return `
+  <div class="card">
+    <h2>Standings</h2>
+    <p class="desc">Points per event on top, raw result below. Medals mark each event's top 3 (individual events); "W" marks the winning side of team events. Hover an event's icon for its full name.</p>
+    <div style="overflow-x:auto;">
+    <table class="std-table"><thead><tr><th>#</th><th>Team</th>${headerCells}<th class="num">Total</th></tr></thead>
+    <tbody>${bodyRows}</tbody></table>
+    </div>
+  </div>`;
+}
+
+/* ---------- Team Assignments ---------- */
+function renderTeamAssignments(){
+  const teamEvents = EVENTS.filter(e => e.type==="team2" || e.type==="team4");
+  const sections = teamEvents.map(ev => {
+    const ta = state.teamAssignments[ev.id];
+    const throughName = eventById(ev.throughEventId).name;
+    if (!ta || !ta.generated) {
+      return `
+      <div class="card">
+        <h2>${ev.icon} ${escapeHtml(ev.name)}</h2>
+        <p class="desc">Teams generated from standings through <strong>${escapeHtml(throughName)}</strong> — not shown until an admin generates them.</p>
+        ${isAdmin() ? `<button class="btn" data-gen="${ev.id}">Generate Teams</button>` :
+          `<div class="locked-box"><div class="lock-icon">🔒</div>TBD — waiting on admin to generate teams.</div>`}
+      </div>`;
+    }
+    const slots = Object.keys(ta.teams);
+    const boxes = slots.map(slot => `
+      <div class="team-roster-box"><h4>Team ${slot}</h4><ul>${ta.teams[slot].map(tid=>`<li>${escapeHtml(nameOf(tid))}</li>`).join("")}</ul></div>
+    `).join("");
+    return `
+    <div class="card">
+      <h2>${ev.icon} ${escapeHtml(ev.name)}</h2>
+      <p class="desc">Generated from standings through <strong>${escapeHtml(throughName)}</strong>.</p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">${boxes}</div>
+    </div>`;
+  }).join("");
+  return sections;
+}
+
+/* ---------- Ball Knowledge Quiz tab ---------- */
+function renderQuizTab(){
+  if (isContributor()) return renderQuizAuthor();
+  const q = state.quiz;
+  if (!q.started) q.started = {};
+  const me = myIdentity();
+  const mySub = state.teams.find(t=>t.id===myIdentityId) ? q.submissions[myIdentityId] : null;
+  const hasStarted = !!q.started[myIdentityId];
+
+  if (!q.released) {
+    return `<div class="card"><h2>🧠 Ball Knowledge Quiz</h2>
+      <div class="locked-box"><div class="lock-icon">🔒</div>Quiz hasn't been released yet.</div>
+      ${isAdmin() ? `<div style="text-align:center;"><button class="btn" id="release-quiz">Release Quiz</button></div>` : ""}
+    </div>`;
+  }
+  if (q.scoresReleased) {
+    const r = computeQuizResults()[myIdentityId];
+    return `<div class="card"><h2>🧠 Ball Knowledge Quiz — Results</h2>
+      <p class="desc">Scores are in! Full breakdown is also on the Standings tab.</p>
+      ${(r && r.points!=null) ? `<div class="badge good" style="font-size:14px; padding:8px 14px;">You got ${escapeHtml(String(r.display))} correct — ${r.points} points</div>` : '<p class="muted-note">No submission on file for your team.</p>'}
+    </div>`;
+  }
+  if (mySub) {
+    return `<div class="card"><h2>🧠 Ball Knowledge Quiz</h2>
+      <div class="locked-box"><div class="lock-icon">✅</div>Submitted! Sit tight for results.</div>
+    </div>`;
+  }
+  if (hasStarted) {
+    if (!quizAnswerDraft) quizAnswerDraft = { answers: Array(10).fill(""), bonus: "" };
+    const qs = q.questions.map((qq,i) => `
+      <div class="quiz-q-block">
+        <label style="font-weight:600; font-size:13px;">${i+1}. ${escapeHtml(qq.q || "(question)")}</label>
+        <input type="text" data-qidx="${i}" value="${escapeHtml(quizAnswerDraft.answers[i])}" placeholder="Your answer">
+      </div>`).join("");
+    return `<div class="card"><h2>🧠 Ball Knowledge Quiz</h2>
+      <p class="desc">Answer all 10, plus the tiebreaker. You can only submit once!</p>
+      ${qs}
+      <div class="quiz-q-block">
+        <label style="font-weight:600; font-size:13px;">Tiebreaker: ${escapeHtml(q.bonusQ || "(bonus question)")}</label>
+        <input type="text" id="bonus-input" value="${escapeHtml(String(quizAnswerDraft.bonus))}" placeholder="Your numeric guess">
+      </div>
+      <button class="btn" id="submit-quiz">Submit Quiz</button>
+    </div>`;
+  }
+  return `<div class="card"><h2>🧠 Ball Knowledge Quiz</h2>
+    <div class="blur-wrap"><div class="blurred"><p>1. Sample question text sits here until you take the quiz...</p><p>2. More hidden questions...</p><p>3. ...</p></div>
+      <div class="blur-overlay"><button class="btn" id="start-quiz">Take Quiz</button></div>
+    </div>
+  </div>`;
+}
+function renderQuizAuthor(){
+  const q = state.quiz;
+  const qBlocks = q.questions.map((qq,i) => `
+    <div class="quiz-q-block">
+      <div class="field"><label>Question ${i+1}</label><input type="text" data-qq="${i}" value="${escapeHtml(qq.q)}" placeholder="Question text"></div>
+      <div class="field"><label>Correct answer</label><input type="text" data-qa="${i}" value="${escapeHtml(qq.a)}" placeholder="Answer key"></div>
+    </div>`).join("");
+  return `<div class="card">
+    <h2>🧠 Ball Knowledge Quiz — Author view (Chuck only)</h2>
+    <p class="desc">Nobody else can see this page's content. Fill in your 10 questions + answer key, and the tiebreaker.</p>
+    ${qBlocks}
+    <hr class="sep">
+    <div class="field"><label>Tiebreaker question</label><input type="text" id="bonus-q" value="${escapeHtml(q.bonusQ)}" placeholder="e.g. How many rushing yards did Derrick Henry have last season?"></div>
+    <div class="field"><label>Tiebreaker correct numeric answer</label><input type="number" id="bonus-a" value="${q.bonusA ?? ''}"></div>
+    <button class="btn" id="save-quiz">Save Quiz</button>
+    <p class="muted-note" style="margin-top:10px;">Status: ${q.released ? "Released to teams" : "Not yet released"} ${q.scoresReleased ? " · Scores released" : ""}</p>
+  </div>`;
+}
+
+/* ---------- Scoring (admin) ---------- */
+function renderScoring(){
+  const chips = EVENTS.map(ev => `<button class="event-chip ${activeScoringEvent===ev.id?'active':''}" data-ev="${ev.id}" style="${isCancelled(ev.id)?'text-decoration:line-through; opacity:.6;':''}">${ev.icon} ${escapeHtml(ev.name)}</button>`).join("");
+  const ev = eventById(activeScoringEvent);
+  const cancelled = isCancelled(ev.id);
+  const controls = `
+    <div style="display:flex; gap:8px; margin-bottom:14px;">
+      ${cancelled
+        ? `<button class="btn secondary small" id="restore-event">Restore Event</button>`
+        : `<button class="btn secondary small" id="reset-event">Reset Scores</button>
+           <button class="btn danger small" id="cancel-event">Cancel Event</button>`}
+    </div>`;
+  let body = "";
+  if (cancelled) {
+    body = `<div class="empty-state">This event has been cancelled and is excluded from standings. Restore it to resume scoring.</div>`;
+  } else if (ev.type==="rank") body = renderScoringRank(ev);
+  else if (ev.type==="time") body = renderScoringTime(ev);
+  else if (ev.type==="sum3") body = renderScoringSum3(ev);
+  else if (ev.type==="makes") body = renderScoringMakes(ev);
+  else if (ev.type==="golf18") body = renderScoringGolf(ev);
+  else if (ev.type==="team2") body = renderScoringTeam2(ev);
+  else if (ev.type==="team4") body = renderScoringTeam4(ev);
+  else if (ev.type==="quiz") body = renderScoringQuiz(ev);
+  return `<div class="card"><h2>Scoring</h2><p class="desc">Admin-only. Enter results below — the standings update immediately.</p>
+    <div class="event-tab-list">${chips}</div>${controls}${body}</div>`;
+}
+function resetEventData(eventId){
+  const ev = eventById(eventId);
+  delete state.raw[eventId];
+  if (ev.type==="team2") { if (state.matchResults[eventId]) state.matchResults[eventId] = { winner:null }; }
+  if (ev.type==="team4") {
+    if (state.matchResults[eventId]) {
+      const mr = {}; const slots=["1","2","3","4"];
+      for (let i=0;i<slots.length;i++) for (let j=i+1;j<slots.length;j++) mr[slots[i]+"-"+slots[j]] = null;
+      state.matchResults[eventId] = mr;
+    }
+  }
+  if (ev.type==="quiz") {
+    state.quiz.released = false;
+    state.quiz.scoresReleased = false;
+    state.quiz.submissions = {};
+    state.quiz.started = {};
+  }
+}
+function scoringTableShell(ev, rows, extraHeaders){
+  return `<table><thead><tr><th>Team</th>${extraHeaders}<th class="num">Points</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function renderScoringRank(ev){
+  const raw = state.raw[ev.id] || {};
+  const res = computeEventResults(ev.id);
+  const rows = state.teams.map(t => `<tr><td>${escapeHtml(t.name)}</td>
+    <td class="num"><input type="number" min="1" max="14" data-raw="${t.id}" value="${raw[t.id] ?? ''}"></td>
+    <td class="num">${(res[t.id]&&res[t.id].points!=null) ? res[t.id].points : "—"}</td></tr>`).join("");
+  return scoringTableShell(ev, rows, `<th class="num">Rank (1-14)</th>`);
+}
+function renderScoringTime(ev){
+  const raw = state.raw[ev.id] || {};
+  const res = computeEventResults(ev.id);
+  const rows = state.teams.map(t => `<tr><td>${escapeHtml(t.name)}</td>
+    <td class="num"><input type="text" placeholder="M:SS" data-raw="${t.id}" value="${raw[t.id]!=null ? formatSeconds(raw[t.id]) : ''}"></td>
+    <td class="num">${(res[t.id]&&res[t.id].points!=null) ? res[t.id].points : "—"}</td></tr>`).join("");
+  return scoringTableShell(ev, rows, `<th class="num">Time</th>`);
+}
+function renderScoringSum3(ev){
+  const raw = state.raw[ev.id] || {};
+  const res = computeEventResults(ev.id);
+  const labels = ev.subLabels;
+  const rows = state.teams.map(t => {
+    const v = raw[t.id] || {};
+    return `<tr><td>${escapeHtml(t.name)}</td>
+      <td class="num"><input type="number" data-raw="${t.id}" data-sub="a" value="${v.a ?? ''}"></td>
+      <td class="num"><input type="number" data-raw="${t.id}" data-sub="b" value="${v.b ?? ''}"></td>
+      <td class="num"><input type="number" data-raw="${t.id}" data-sub="c" value="${v.c ?? ''}"></td>
+      <td class="num">${(res[t.id]&&res[t.id].points!=null) ? res[t.id].points : "—"}</td></tr>`;
+  }).join("");
+  return scoringTableShell(ev, rows, labels.map(l=>`<th class="num">${l} (yds)</th>`).join(""));
+}
+function renderScoringMakes(ev){
+  const raw = state.raw[ev.id] || {};
+  const res = computeEventResults(ev.id);
+  const rows = state.teams.map(t => `<tr><td>${escapeHtml(t.name)}</td>
+    <td class="num"><input type="number" min="0" data-raw="${t.id}" value="${raw[t.id] ?? ''}"></td>
+    <td class="num">${(res[t.id]&&res[t.id].points!=null) ? res[t.id].points : "—"}</td></tr>`).join("");
+  return scoringTableShell(ev, rows, `<th class="num">Makes</th>`);
+}
+function renderScoringGolf(ev){
+  const raw = state.raw[ev.id] || {};
+  const res = computeEventResults(ev.id);
+  const cards = state.teams.map(t => {
+    const subCount = t.coOwnerCount || 1;
+    const v = raw[t.id] || { subs: Array.from({length:subCount}, ()=>Array(18).fill(null)) };
+    const subBlocks = v.subs.map((holes, si) => `
+      <div style="margin-bottom:6px;">
+        ${subCount>1 ? `<div class="muted-note">Member ${si+1}</div>` : ""}
+        <div class="golf-holes-row">
+          ${holes.map((h,hi) => `<div class="golf-hole-cell"><label>${hi+1}</label><input class="hole-input" type="number" min="1" data-team="${t.id}" data-sub="${si}" data-hole="${hi}" value="${h ?? ''}"></div>`).join("")}
+        </div>
+      </div>`).join("");
+    const r = res[t.id];
+    return `<div class="golf-team-card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3>${escapeHtml(t.name)}</h3>
+        <div>${r ? `Total: <strong>${r.raw ? r.raw.total : ''}</strong> · Points: <strong>${r.points}</strong>` : '<span class="muted-note">no data yet</span>'}</div>
+      </div>
+      ${subBlocks}
+    </div>`;
+  }).join("");
+  return cards;
+}
+function teamRosterLabel(ev, slot){ const ta = state.teamAssignments[ev.id]; return ta && ta.teams[slot] ? ta.teams[slot].map(nameOf).join(", ") : ""; }
+function renderScoringTeam2(ev){
+  const ta = state.teamAssignments[ev.id];
+  if (!ta || !ta.generated) return `<p class="muted-note">Generate teams on the Team Assignments tab first.</p>`;
+  const mr = state.matchResults[ev.id] || {};
+  return `<div class="matchup-row">
+    <div class="side ${mr.winner==='1'?'winner':''}"><strong>Team 1</strong><br><span class="muted-note">${escapeHtml(teamRosterLabel(ev,'1'))}</span></div>
+    <button class="btn small" data-winner2="1">Team 1 won</button>
+    <button class="btn small" data-winner2="2">Team 2 won</button>
+    <div class="side ${mr.winner==='2'?'winner':''}"><strong>Team 2</strong><br><span class="muted-note">${escapeHtml(teamRosterLabel(ev,'2'))}</span></div>
+  </div>
+  <p class="muted-note">${mr.winner ? "Team "+mr.winner+" is currently marked as the winner (each member gets "+ev.winPoints+" pts)." : "No winner recorded yet."}</p>`;
+}
+function renderScoringTeam4(ev){
+  const ta = state.teamAssignments[ev.id];
+  if (!ta || !ta.generated) return `<p class="muted-note">Generate teams on the Team Assignments tab first.</p>`;
+  const mr = state.matchResults[ev.id] || {};
+  const slots = ["1","2","3","4"];
+  const rows = [];
+  for (let i=0;i<slots.length;i++) for (let j=i+1;j<slots.length;j++){
+    const key = slots[i]+"-"+slots[j];
+    const w = mr[key];
+    rows.push(`<div class="matchup-row">
+      <div class="side ${w===slots[i]?'winner':''}"><strong>Team ${slots[i]}</strong></div>
+      <button class="btn small" data-t4win="${key}" data-side="${slots[i]}">Team ${slots[i]} won</button>
+      <button class="btn small" data-t4win="${key}" data-side="${slots[j]}">Team ${slots[j]} won</button>
+      <div class="side ${w===slots[j]?'winner':''}"><strong>Team ${slots[j]}</strong></div>
+    </div>`);
+  }
+  const rosters = slots.map(s => `<div class="team-roster-box"><h4>Team ${s}</h4><ul>${(ta.teams[s]||[]).map(tid=>`<li>${escapeHtml(nameOf(tid))}</li>`).join("")}</ul></div>`).join("");
+  return `<div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">${rosters}</div>${rows.join("")}`;
+}
+function renderScoringQuiz(ev){
+  const q = state.quiz;
+  const started = q.started || {};
+  const submittedCount = Object.keys(q.submissions).length;
+  const startedCount = Object.keys(started).filter(k => started[k]).length;
+  const res = q.scoresReleased ? computeQuizResults() : null;
+  const rows = state.teams.map(t => {
+    const sub = q.submissions[t.id];
+    const r = res ? res[t.id] : null;
+    return `<tr><td>${escapeHtml(t.name)}</td>
+      <td class="ctr">${started[t.id] ? "▶️ started" : "—"}</td>
+      <td class="ctr">${sub ? "✅ submitted" : "—"}</td>
+      <td class="num">${r ? r.display : "—"}</td><td class="num">${(r && r.points!=null) ? r.points : "—"}</td></tr>`;
+  }).join("");
+  return `
+  <p class="muted-note">Quiz status: ${q.released?"released":"not released"} · ${startedCount}/${state.teams.length} started · ${submittedCount}/${state.teams.length} submitted · ${q.scoresReleased?"scores released":"scores not released"}</p>
+  ${!q.scoresReleased ? `<button class="btn" id="release-scores">Release Scores</button>` : ""}
+  <table style="margin-top:12px;"><thead><tr><th>Team</th><th class="ctr">Started</th><th class="ctr">Submitted</th><th class="num">Correct</th><th class="num">Points</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+/* ============================== BIND EVENTS ============================== */
+function bindShell(){
+  document.getElementById("btn-settings").onclick = openSettings;
+  document.querySelectorAll("nav.tabs button").forEach(b => { b.onclick = () => { activeTab = b.dataset.tab; render(); }; });
+
+  if (activeTab === "quiz") bindQuizTab();
+  if (activeTab === "teams") bindTeamsTab();
+  if (activeTab === "scoring" && isAdmin()) bindScoringTab();
+}
+
+function bindQuizTab(){
+  const q = state.quiz;
+  if (isContributor()) {
+    const save = document.getElementById("save-quiz");
+    if (save) save.onclick = () => {
+      document.querySelectorAll("[data-qq]").forEach(inp => { q.questions[inp.dataset.qq].q = inp.value; });
+      document.querySelectorAll("[data-qa]").forEach(inp => { q.questions[inp.dataset.qa].a = inp.value; });
+      q.bonusQ = document.getElementById("bonus-q").value;
+      const ba = document.getElementById("bonus-a").value;
+      q.bonusA = ba === "" ? null : Number(ba);
+      saveState(); toast("Quiz saved.");
+    };
+    return;
+  }
+  const rel = document.getElementById("release-quiz");
+  if (rel) rel.onclick = () => { q.released = true; saveState(); toast("Quiz released!"); };
+  const start = document.getElementById("start-quiz");
+  if (start) start.onclick = () => {
+    confirmModal("Start the quiz?", "Once you start, this can't be undone from your side — only an admin can reset it. Make sure whoever's verifying is watching now.", () => {
+      if (!q.started) q.started = {};
+      q.started[myIdentityId] = true;
+      quizAnswerDraft = { answers: Array(10).fill(""), bonus:"" };
+      saveState(); toast("Quiz started!");
+    });
+  };
+  document.querySelectorAll("[data-qidx]").forEach(inp => { inp.oninput = () => { quizAnswerDraft.answers[inp.dataset.qidx] = inp.value; }; });
+  const bonusInput = document.getElementById("bonus-input");
+  if (bonusInput) bonusInput.oninput = () => { quizAnswerDraft.bonus = bonusInput.value; };
+  const submit = document.getElementById("submit-quiz");
+  if (submit) submit.onclick = () => {
+    confirmModal("Submit quiz?", "You can only submit once — make sure your answers are final.", () => {
+      q.submissions[myIdentityId] = { answers: quizAnswerDraft.answers.slice(), bonus: Number(quizAnswerDraft.bonus), submittedAt: Date.now() };
+      quizAnswerDraft = null;
+      saveState(); toast("Quiz submitted!");
+    });
+  };
+}
+function bindTeamsTab(){
+  document.querySelectorAll("[data-gen]").forEach(btn => {
+    btn.onclick = () => {
+      const evId = btn.dataset.gen;
+      confirmModal("Generate teams?", "This locks in team assignments for \"" + eventById(evId).name + "\" based on current standings. This can't be undone from here.", () => {
+        generateTeams(evId); saveState(); toast("Teams generated!");
+      });
+    };
+  });
+}
+function bindScoringTab(){
+  document.querySelectorAll(".event-chip[data-ev]").forEach(c => { c.onclick = () => { activeScoringEvent = c.dataset.ev; render(); }; });
+  const ev = eventById(activeScoringEvent);
+
+  const resetBtn = document.getElementById("reset-event");
+  if (resetBtn) resetBtn.onclick = () => confirmModal("Reset scores?", "This clears all entered scores/results for \"" + ev.name + "\" so you can re-enter them. Team assignments (if any) are kept.", () => {
+    resetEventData(ev.id); saveState(); toast("Scores reset for " + ev.name + ".");
+  });
+  const cancelBtn = document.getElementById("cancel-event");
+  if (cancelBtn) cancelBtn.onclick = () => confirmModal("Cancel this event?", "\"" + ev.name + "\" will be removed from standings (greyed out, no points) until you restore it.", () => {
+    if (!state.cancelledEvents) state.cancelledEvents = [];
+    state.cancelledEvents.push(ev.id); saveState(); toast(ev.name + " cancelled.");
+  });
+  const restoreBtn = document.getElementById("restore-event");
+  if (restoreBtn) restoreBtn.onclick = () => {
+    state.cancelledEvents = (state.cancelledEvents||[]).filter(id => id !== ev.id);
+    saveState(); toast(ev.name + " restored.");
+  };
+
+  if (ev.type==="rank" || ev.type==="time" || ev.type==="makes") {
+    document.querySelectorAll("[data-raw]").forEach(inp => {
+      inp.onchange = () => {
+        if (!state.raw[ev.id]) state.raw[ev.id] = {};
+        let v = inp.value;
+        if (ev.type==="time") { const secs = parseTimeToSeconds(v); state.raw[ev.id][inp.dataset.raw] = secs; }
+        else { state.raw[ev.id][inp.dataset.raw] = v===""?null:Number(v); }
+        saveState();
+      };
+    });
+  }
+  if (ev.type==="sum3") {
+    document.querySelectorAll("[data-raw][data-sub]").forEach(inp => {
+      inp.onchange = () => {
+        if (!state.raw[ev.id]) state.raw[ev.id] = {};
+        const tid = inp.dataset.raw;
+        if (!state.raw[ev.id][tid]) state.raw[ev.id][tid] = {};
+        state.raw[ev.id][tid][inp.dataset.sub] = inp.value===""?null:Number(inp.value);
+        saveState();
+      };
+    });
+  }
+  if (ev.type==="golf18") {
+    document.querySelectorAll("[data-team][data-sub][data-hole]").forEach(inp => {
+      inp.onchange = () => {
+        if (!state.raw[ev.id]) state.raw[ev.id] = {};
+        const tid = inp.dataset.team;
+        const t = teamById(tid);
+        const subCount = t.coOwnerCount||1;
+        if (!state.raw[ev.id][tid]) state.raw[ev.id][tid] = { subs: Array.from({length:subCount}, ()=>Array(18).fill(null)) };
+        state.raw[ev.id][tid].subs[Number(inp.dataset.sub)][Number(inp.dataset.hole)] = inp.value===""?null:Number(inp.value);
+        saveState();
+      };
+    });
+  }
+  document.querySelectorAll("[data-winner2]").forEach(btn => {
+    btn.onclick = () => { state.matchResults[ev.id] = { winner: btn.dataset.winner2 }; saveState(); };
+  });
+  document.querySelectorAll("[data-t4win]").forEach(btn => {
+    btn.onclick = () => { state.matchResults[ev.id][btn.dataset.t4win] = btn.dataset.side; saveState(); };
+  });
+  const releaseScores = document.getElementById("release-scores");
+  if (releaseScores) releaseScores.onclick = () => confirmModal("Release quiz scores?", "This grades all submissions against the answer key and posts points to standings.", () => {
+    state.quiz.scoresReleased = true; saveState(); toast("Scores released!");
+  });
+}
+
+/* ============================== MODALS ============================== */
+function confirmModal(title, body, onConfirm){
+  const backdrop = el(`<div class="modal-backdrop"><div class="modal"><h3>${escapeHtml(title)}</h3><p class="desc">${escapeHtml(body)}</p>
+    <div class="row"><button class="btn secondary" id="m-cancel">Cancel</button><button class="btn" id="m-ok">Confirm</button></div></div></div>`);
+  document.body.appendChild(backdrop);
+  backdrop.querySelector("#m-cancel").onclick = () => backdrop.remove();
+  backdrop.querySelector("#m-ok").onclick = () => { backdrop.remove(); onConfirm(); };
+}
+
+/* ---------- Settings ---------- */
+function openSettings(){
+  const me = myIdentity();
+  const roleMgmt = isOwner() ? `
+    <hr class="sep"><p style="font-weight:700; font-size:13px;">Manage teams &amp; roles</p>
+    ${state.teams.map(t => `
+      <div class="field" style="display:flex; gap:8px; align-items:center;">
+        <input type="text" data-name="${t.id}" value="${escapeHtml(t.name)}" style="flex:1;">
+        <select data-role="${t.id}" style="width:110px;">
+          <option value="member" ${t.role==='member'?'selected':''}>Member</option>
+          <option value="admin" ${t.role==='admin'?'selected':''}>Admin</option>
+          <option value="owner" ${t.role==='owner'?'selected':''}>Owner</option>
+        </select>
+        <button class="btn secondary small" data-resetpin="${t.id}">Reset PIN</button>
+      </div>`).join("")}
+    <button class="btn secondary small" id="save-roles">Save team &amp; role changes</button>
+  ` : "";
+  const backdrop = el(`<div class="modal-backdrop"><div class="modal" style="max-width:560px;">
+    <h3>⚙ Settings</h3>
+    <div class="field"><label>League name</label><input type="text" id="s-league-name" value="${escapeHtml(state.leagueName)}"></div>
+    <button class="btn secondary" id="s-switch">Switch team</button>
+    <hr class="sep">
+    <button class="btn secondary" id="s-export">Export backup (.json)</button>
+    <button class="btn secondary" id="s-import" style="margin-left:6px;">Import backup</button>
+    <input type="file" id="s-import-file" accept="application/json" style="display:none;">
+    ${roleMgmt}
+    <div class="row"><button class="btn secondary" id="m-close">Close</button></div>
+  </div></div>`);
+  document.body.appendChild(backdrop);
+  backdrop.querySelector("#m-close").onclick = () => backdrop.remove();
+  backdrop.querySelector("#s-league-name").onchange = e => { state.leagueName = e.target.value; saveState(); };
+  backdrop.querySelector("#s-switch").onclick = () => { myIdentityId = null; localStorage.removeItem("mgc_myIdentityId"); backdrop.remove(); render(); };
+  backdrop.querySelector("#s-export").onclick = () => {
+    const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "mind-goblins-backup.json"; a.click();
+  };
+  backdrop.querySelector("#s-import").onclick = () => backdrop.querySelector("#s-import-file").click();
+  backdrop.querySelector("#s-import-file").onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { try { state = JSON.parse(reader.result); saveState(); toast("Backup imported."); backdrop.remove(); } catch(err) { toast("Couldn't read that file."); } };
+    reader.readAsText(file);
+  };
+  if (isOwner()) {
+    backdrop.querySelector("#save-roles").onclick = () => {
+      let newOwnerId = null;
+      backdrop.querySelectorAll("[data-role]").forEach(sel => { if (sel.value==="owner") newOwnerId = sel.dataset.role; });
+      backdrop.querySelectorAll("[data-name]").forEach(inp => { const t = teamById(inp.dataset.name); if (t && inp.value.trim()) t.name = inp.value.trim(); });
+      backdrop.querySelectorAll("[data-role]").forEach(sel => {
+        const t = teamById(sel.dataset.role);
+        if (!t) return;
+        if (sel.value === "owner") t.role = (t.id===newOwnerId) ? "owner" : "admin";
+        else t.role = sel.value;
+      });
+      if (newOwnerId) state.teams.forEach(t => { if (t.id!==newOwnerId && t.role==="owner") t.role="admin"; });
+      saveState(); toast("Roles updated.");
+      backdrop.remove();
+    };
+    backdrop.querySelectorAll("[data-resetpin]").forEach(btn => {
+      btn.onclick = () => { delete state.pinHashes[btn.dataset.resetpin]; saveState(); toast("PIN reset — they'll be asked to set a new one next login."); };
+    });
+  }
+}
+
+/* ============================== INIT ============================== */
+async function init(){
+  render(); // shows cached state instantly if we have it, else a loading screen
+  try {
+    const remote = await apiGetState();
+    if (remote && (!state || (remote.meta && remote.meta.updatedAt >= (state.meta?state.meta.updatedAt:0)))) {
+      state = remote; LS.set("mgc_state", state);
+    }
+    setSyncOk(true);
+  } catch(e) {
+    setSyncOk(false);
+    if (!state) { const note = document.getElementById("loading-note"); if (note) note.textContent = "Can't reach the server right now — retrying…"; }
+  }
+  render();
+  startPolling();
+}
+init();
+
+})();
+</script>
+</body>
+</html>
