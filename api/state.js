@@ -1,4 +1,5 @@
-const { kv } = require('@vercel/kv');
+const { Redis } = require('@upstash/redis');
+const redis = Redis.fromEnv();
 
 const STATE_KEY = 'mgc_state';
 
@@ -47,11 +48,11 @@ function defaultState() {
 module.exports = async (req, res) => {
   try {
     if (req.method === 'GET') {
-      let state = await kv.get(STATE_KEY);
+      let state = await redis.get(STATE_KEY);
       if (!state) {
         state = defaultState();
         state.meta.updatedAt = Date.now();
-        await kv.set(STATE_KEY, state);
+        await redis.set(STATE_KEY, state);
       }
       res.status(200).json(state);
       return;
@@ -60,7 +61,7 @@ module.exports = async (req, res) => {
       let body = req.body;
       if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { res.status(400).json({ error: 'invalid json' }); return; } }
       if (!body || typeof body !== 'object') { res.status(400).json({ error: 'invalid body' }); return; }
-      await kv.set(STATE_KEY, body);
+      await redis.set(STATE_KEY, body);
       res.status(200).json({ ok: true });
       return;
     }
