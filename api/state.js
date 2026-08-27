@@ -27,6 +27,7 @@ function defaultState() {
     leagueName: "Mind Goblins Combine",
     teams: TEAM_DEFS.map(t => ({ id: t.id, name: t.name, role: t.role, coOwnerCount: t.coOwnerCount || 1 })),
     contributor: { id: "chuck", name: "Chuck" },
+    spectator: { id: "spectator", name: "Spectator" },
     pinHashes: {},
     pointScale: DEFAULT_POINT_SCALE.slice(),
     raw: {},
@@ -35,7 +36,7 @@ function defaultState() {
     matchResults: {},
     cancelledEvents: [],
     quiz: {
-      questions: Array.from({ length: 10 }, () => ({ q: "", a: "" })),
+      questions: Array.from({ length: 15 }, () => ({ q: "", a: "" })),
       bonusQ: "", bonusA: null,
       released: false, scoresReleased: false,
       started: {},
