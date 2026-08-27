@@ -141,6 +141,8 @@ const TEAM_DEFS = [
   { id:"t14", name:"Italian Stallions",    role:"admin" },
 ];
 const CHUCK_ID = "chuck";
+const SPECTATOR_ID = "spectator";
+const QUIZ_QUESTION_COUNT = 15;
 
 const EVENTS = [
   { id:"cameo",    name:"Drama's Cameo",         short:"Cameo",    icon:"🎬", type:"rank" },
@@ -159,6 +161,7 @@ const defaultState = () => ({
   leagueName: "Mind Goblins Combine",
   teams: TEAM_DEFS.map(t => ({ id:t.id, name:t.name, role:t.role, coOwnerCount: t.coOwnerCount||1 })),
   contributor: { id: CHUCK_ID, name:"Chuck" },
+  spectator: { id: SPECTATOR_ID, name:"Spectator" },
   pinHashes: {},
   pointScale: DEFAULT_POINT_SCALE.slice(),
   raw: {},            // { eventId: { teamId: <raw data> } }
@@ -167,7 +170,7 @@ const defaultState = () => ({
   matchResults: {},   // { eventId: {...} }
   cancelledEvents: [], // [eventId, ...] — cancelled events are excluded from standings entirely
   quiz: {
-    questions: Array.from({length:10}, () => ({ q:"", a:"" })),
+    questions: Array.from({length:QUIZ_QUESTION_COUNT}, () => ({ q:"", a:"" })),
     bonusQ: "", bonusA: null,
     released: false, scoresReleased: false,
     started: {},        // { teamId: true } — once set, "Take Quiz" never reappears for that team (only an admin Reset clears it)
@@ -181,7 +184,18 @@ const LS = {
   get(k,d){ try{ const v=localStorage.getItem(k); return v===null?d:JSON.parse(v); }catch(e){ return d; } },
   set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 };
-let state = LS.get("mgc_state", null);
+/* Backfill fields for state saved by an older version of this app (e.g. a live DB seeded before
+   the Spectator role or the 15-question quiz existed), so older data keeps working without a reset. */
+function migrateState(s){
+  if (!s) return s;
+  if (!s.spectator) s.spectator = { id: SPECTATOR_ID, name: "Spectator" };
+  if (!s.quiz) s.quiz = defaultState().quiz;
+  if (s.quiz && Array.isArray(s.quiz.questions)) {
+    while (s.quiz.questions.length < QUIZ_QUESTION_COUNT) s.quiz.questions.push({ q:"", a:"" });
+  }
+  return s;
+}
+let state = migrateState(LS.get("mgc_state", null));
 let myIdentityId = LS.get("mgc_myIdentityId", null);
 let syncOk = false;
 let pollTimer = null;
@@ -208,7 +222,7 @@ function syncStatusHtml(){ return '<span class="sync-status"><span class="dot '+
 async function pullState(showToastOnFail){
   try {
     const remote = await apiGetState();
-    if (remote && (!state || (remote.meta && remote.meta.updatedAt >= (state.meta?state.meta.updatedAt:0)))) { state = remote; LS.set("mgc_state", state); }
+    if (remote && (!state || (remote.meta && remote.meta.updatedAt >= (state.meta?state.meta.updatedAt:0)))) { state = migrateState(remote); LS.set("mgc_state", state); }
     setSyncOk(true); render();
   } catch(e) { setSyncOk(false); if (showToastOnFail) toast("Can't reach the server — showing last saved data."); }
 }
@@ -227,14 +241,20 @@ let toastTimer=null;
 function toast(msg){ const el=document.getElementById("toast"); el.textContent=msg; el.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove("show"),3200); }
 
 /* ============================== IDENTITY / ROLE HELPERS ============================== */
-function allIdentities(){ return state.teams.concat([{ id: state.contributor.id, name: state.contributor.name, role:"contributor" }]); }
+function allIdentities(){
+  return state.teams.concat([
+    { id: state.contributor.id, name: state.contributor.name, role:"contributor" },
+    { id: state.spectator.id, name: state.spectator.name, role:"spectator" }
+  ]);
+}
 function myIdentity(){ return allIdentities().find(i => i.id === myIdentityId) || null; }
 function myRole(){ const me = myIdentity(); return me ? me.role : null; }
 function isOwner(){ return myRole() === "owner"; }
 function isAdmin(){ return myRole() === "owner" || myRole() === "admin"; }
 function isContributor(){ return myRole() === "contributor"; }
+function isSpectator(){ return myRole() === "spectator"; }
 function teamById(id){ return state.teams.find(t => t.id === id); }
-function nameOf(id){ if (id === CHUCK_ID) return state.contributor.name; const t = teamById(id); return t ? t.name : "?"; }
+function nameOf(id){ if (id === CHUCK_ID) return state.contributor.name; if (id === SPECTATOR_ID) return state.spectator.name; const t = teamById(id); return t ? t.name : "?"; }
 
 /* ============================== EVENT ENGINE ============================== */
 function eventById(id){ return EVENTS.find(e => e.id === id); }
@@ -381,7 +401,7 @@ function computeTeam2Results(ev){
     members.forEach(tid => {
       if (!winner) { out[tid] = { points:null, display:"pending", badge:null }; return; }
       const won = winner === slot;
-      out[tid] = { points: won ? ev.winPoints : 0, display: won ? "W" : "L", badge: won ? "W" : null };
+      out[tid] = { points: won ? ev.winPoints : 0, display: won ? "W" : "L", badge: null };
     });
   });
   return out;
@@ -401,14 +421,11 @@ function computeTeam4Results(ev){
       if (w) { anyPlayed = true; winCounts[w]++; }
     }
   }
-  const maxWins = Math.max(...slots.map(s=>winCounts[s]));
-  const leaders = slots.filter(s => winCounts[s]===maxWins);
-  const uniqueLeader = anyPlayed && maxWins>0 && leaders.length===1 ? leaders[0] : null;
   slots.forEach(slot => {
     const members = ta.teams[slot] || [];
     members.forEach(tid => {
       const w = winCounts[slot];
-      out[tid] = { points: anyPlayed ? w*ev.winPointsPerGame : null, display: anyPlayed ? "("+w+"W)" : "pending", badge: slot===uniqueLeader ? "W" : null };
+      out[tid] = { points: anyPlayed ? w*ev.winPointsPerGame : null, display: anyPlayed ? (w + (w===1?" win":" wins")) : "pending", badge: null };
     });
   });
   return out;
@@ -579,6 +596,8 @@ function openEnterPinModal(id){
 /* ---------- Main shell ---------- */
 function renderShell(){
   const me = myIdentity();
+  const spectatorOnly = isSpectator();
+  if (spectatorOnly) activeTab = "standings"; // spectators only ever see Standings
   return `
   <header class="top">
     <div><h1>🧌 ${escapeHtml(state.leagueName)}</h1>
@@ -591,14 +610,14 @@ function renderShell(){
   <div class="wrap">
     <nav class="tabs">
       <button data-tab="standings" class="${activeTab==='standings'?'active':''}">🏆 Standings</button>
-      <button data-tab="quiz" class="${activeTab==='quiz'?'active':''}">🧠 Ball Knowledge Quiz</button>
-      <button data-tab="teams" class="${activeTab==='teams'?'active':''}">👥 Team Assignments</button>
+      ${!spectatorOnly ? `<button data-tab="quiz" class="${activeTab==='quiz'?'active':''}">🧠 Ball Knowledge Quiz</button>` : ""}
+      ${!spectatorOnly ? `<button data-tab="teams" class="${activeTab==='teams'?'active':''}">👥 Team Assignments</button>` : ""}
       ${isAdmin() ? `<button data-tab="scoring" class="${activeTab==='scoring'?'active':''}">📋 Scoring</button>` : ""}
     </nav>
     <div id="tab-content">
       ${activeTab==="standings" ? renderStandings() : ""}
-      ${activeTab==="quiz" ? renderQuizTab() : ""}
-      ${activeTab==="teams" ? renderTeamAssignments() : ""}
+      ${activeTab==="quiz" && !spectatorOnly ? renderQuizTab() : ""}
+      ${activeTab==="teams" && !spectatorOnly ? renderTeamAssignments() : ""}
       ${activeTab==="scoring" && isAdmin() ? renderScoring() : ""}
     </div>
   </div>`;
@@ -625,7 +644,6 @@ function renderStandings(){
   return `
   <div class="card">
     <h2>Standings</h2>
-    <p class="desc">Points per event on top, raw result below. Medals mark each event's top 3 (individual events); "W" marks the winning side of team events. Hover an event's icon for its full name.</p>
     <div style="overflow-x:auto;">
     <table class="std-table"><thead><tr><th>#</th><th>Team</th>${headerCells}<th class="num">Total</th></tr></thead>
     <tbody>${bodyRows}</tbody></table>
@@ -655,8 +673,9 @@ function renderTeamAssignments(){
     return `
     <div class="card">
       <h2>${ev.icon} ${escapeHtml(ev.name)}</h2>
-      <p class="desc">Generated from standings through <strong>${escapeHtml(throughName)}</strong>.</p>
-      <div style="display:flex; gap:10px; flex-wrap:wrap;">${boxes}</div>
+      <p class="desc">Generated from standings through <strong>${escapeHtml(throughName)}</strong>. ${isAdmin() ? 'Rosters can be fine-tuned on the Scoring tab.' : ''}</p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; ${isAdmin() ? 'margin-bottom:10px;' : ''}">${boxes}</div>
+      ${isAdmin() ? `<button class="btn secondary small" data-reset-teams="${ev.id}">Reset Team Assignments</button>` : ""}
     </div>`;
   }).join("");
   return sections;
@@ -690,14 +709,14 @@ function renderQuizTab(){
     </div>`;
   }
   if (hasStarted) {
-    if (!quizAnswerDraft) quizAnswerDraft = { answers: Array(10).fill(""), bonus: "" };
+    if (!quizAnswerDraft) quizAnswerDraft = { answers: Array(q.questions.length).fill(""), bonus: "" };
     const qs = q.questions.map((qq,i) => `
       <div class="quiz-q-block">
         <label style="font-weight:600; font-size:13px;">${i+1}. ${escapeHtml(qq.q || "(question)")}</label>
         <input type="text" data-qidx="${i}" value="${escapeHtml(quizAnswerDraft.answers[i])}" placeholder="Your answer">
       </div>`).join("");
     return `<div class="card"><h2>🧠 Ball Knowledge Quiz</h2>
-      <p class="desc">Answer all 10, plus the tiebreaker. You can only submit once!</p>
+      <p class="desc">Answer all ${q.questions.length}, plus the tiebreaker. You can only submit once!</p>
       ${qs}
       <div class="quiz-q-block">
         <label style="font-weight:600; font-size:13px;">Tiebreaker: ${escapeHtml(q.bonusQ || "(bonus question)")}</label>
@@ -721,7 +740,7 @@ function renderQuizAuthor(){
     </div>`).join("");
   return `<div class="card">
     <h2>🧠 Ball Knowledge Quiz — Author view (Chuck only)</h2>
-    <p class="desc">Nobody else can see this page's content. Fill in your 10 questions + answer key, and the tiebreaker.</p>
+    <p class="desc">Nobody else can see this page's content. Fill in your ${q.questions.length} questions + answer key, and the tiebreaker.</p>
     ${qBlocks}
     <hr class="sep">
     <div class="field"><label>Tiebreaker question</label><input type="text" id="bonus-q" value="${escapeHtml(q.bonusQ)}" placeholder="e.g. How many rushing yards did Derrick Henry have last season?"></div>
@@ -800,13 +819,16 @@ function renderScoringSum3(ev){
   const labels = ev.subLabels;
   const rows = state.teams.map(t => {
     const v = raw[t.id] || {};
+    const anyEntered = v.a!=null || v.b!=null || v.c!=null;
+    const total = (v.a||0)+(v.b||0)+(v.c||0);
     return `<tr><td>${escapeHtml(t.name)}</td>
       <td class="num"><input type="number" data-raw="${t.id}" data-sub="a" value="${v.a ?? ''}"></td>
       <td class="num"><input type="number" data-raw="${t.id}" data-sub="b" value="${v.b ?? ''}"></td>
       <td class="num"><input type="number" data-raw="${t.id}" data-sub="c" value="${v.c ?? ''}"></td>
+      <td class="num"><strong>${anyEntered ? total : "—"}</strong></td>
       <td class="num">${(res[t.id]&&res[t.id].points!=null) ? res[t.id].points : "—"}</td></tr>`;
   }).join("");
-  return scoringTableShell(ev, rows, labels.map(l=>`<th class="num">${l} (yds)</th>`).join(""));
+  return scoringTableShell(ev, rows, labels.map(l=>`<th class="num">${l} (yds)</th>`).join("") + `<th class="num">Total (yds)</th>`);
 }
 function renderScoringMakes(ev){
   const raw = state.raw[ev.id] || {};
@@ -841,11 +863,25 @@ function renderScoringGolf(ev){
   return cards;
 }
 function teamRosterLabel(ev, slot){ const ta = state.teamAssignments[ev.id]; return ta && ta.teams[slot] ? ta.teams[slot].map(nameOf).join(", ") : ""; }
+function renderRosterEditor(ev){
+  const ta = state.teamAssignments[ev.id];
+  const slots = Object.keys(ta.teams);
+  const rows = state.teams.map(t => {
+    const cur = slots.find(s => (ta.teams[s]||[]).includes(t.id)) || slots[0];
+    const opts = slots.map(s => `<option value="${s}" ${s===cur?'selected':''}>Team ${s}</option>`).join("");
+    return `<tr><td>${escapeHtml(t.name)}</td><td><select data-roster-move="${ev.id}" data-member="${t.id}">${opts}</select></td></tr>`;
+  }).join("");
+  return `<div class="card" style="margin-bottom:14px;">
+    <h3 style="margin-bottom:4px;">Adjust rosters</h3>
+    <p class="desc" style="margin-bottom:8px;">Auto-populated from standings — move anyone to a different team if needed; this changes who gets points from the result below.</p>
+    <table><thead><tr><th>Team</th><th>Assigned to</th></tr></thead><tbody>${rows}</tbody></table>
+  </div>`;
+}
 function renderScoringTeam2(ev){
   const ta = state.teamAssignments[ev.id];
   if (!ta || !ta.generated) return `<p class="muted-note">Generate teams on the Team Assignments tab first.</p>`;
   const mr = state.matchResults[ev.id] || {};
-  return `<div class="matchup-row">
+  return renderRosterEditor(ev) + `<div class="matchup-row">
     <div class="side ${mr.winner==='1'?'winner':''}"><strong>Team 1</strong><br><span class="muted-note">${escapeHtml(teamRosterLabel(ev,'1'))}</span></div>
     <button class="btn small" data-winner2="1">Team 1 won</button>
     <button class="btn small" data-winner2="2">Team 2 won</button>
@@ -869,8 +905,7 @@ function renderScoringTeam4(ev){
       <div class="side ${w===slots[j]?'winner':''}"><strong>Team ${slots[j]}</strong></div>
     </div>`);
   }
-  const rosters = slots.map(s => `<div class="team-roster-box"><h4>Team ${s}</h4><ul>${(ta.teams[s]||[]).map(tid=>`<li>${escapeHtml(nameOf(tid))}</li>`).join("")}</ul></div>`).join("");
-  return `<div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">${rosters}</div>${rows.join("")}`;
+  return renderRosterEditor(ev) + rows.join("");
 }
 function renderScoringQuiz(ev){
   const q = state.quiz;
@@ -923,7 +958,7 @@ function bindQuizTab(){
     confirmModal("Start the quiz?", "Once you start, this can't be undone from your side — only an admin can reset it. Make sure whoever's verifying is watching now.", () => {
       if (!q.started) q.started = {};
       q.started[myIdentityId] = true;
-      quizAnswerDraft = { answers: Array(10).fill(""), bonus:"" };
+      quizAnswerDraft = { answers: Array(q.questions.length).fill(""), bonus:"" };
       saveState(); toast("Quiz started!");
     });
   };
@@ -945,6 +980,16 @@ function bindTeamsTab(){
       const evId = btn.dataset.gen;
       confirmModal("Generate teams?", "This locks in team assignments for \"" + eventById(evId).name + "\" based on current standings. This can't be undone from here.", () => {
         generateTeams(evId); saveState(); toast("Teams generated!");
+      });
+    };
+  });
+  document.querySelectorAll("[data-reset-teams]").forEach(btn => {
+    btn.onclick = () => {
+      const evId = btn.dataset.resetTeams;
+      confirmModal("Reset team assignments?", "This clears the current rosters (and any match results) for \"" + eventById(evId).name + "\" back to not-yet-generated. You can generate fresh teams from current standings afterward.", () => {
+        delete state.teamAssignments[evId];
+        delete state.matchResults[evId];
+        saveState(); toast("Team assignments reset for " + eventById(evId).name + ".");
       });
     };
   });
@@ -1009,6 +1054,19 @@ function bindScoringTab(){
   document.querySelectorAll("[data-t4win]").forEach(btn => {
     btn.onclick = () => { state.matchResults[ev.id][btn.dataset.t4win] = btn.dataset.side; saveState(); };
   });
+  document.querySelectorAll("[data-roster-move]").forEach(sel => {
+    sel.onchange = () => {
+      const evId = sel.dataset.rosterMove;
+      const tid = sel.dataset.member;
+      const newSlot = sel.value;
+      const rosterTa = state.teamAssignments[evId];
+      if (!rosterTa) return;
+      Object.keys(rosterTa.teams).forEach(s => { rosterTa.teams[s] = rosterTa.teams[s].filter(id => id !== tid); });
+      if (!rosterTa.teams[newSlot]) rosterTa.teams[newSlot] = [];
+      rosterTa.teams[newSlot].push(tid);
+      saveState(); toast(nameOf(tid) + " moved to Team " + newSlot + ".");
+    };
+  });
   const releaseScores = document.getElementById("release-scores");
   if (releaseScores) releaseScores.onclick = () => confirmModal("Release quiz scores?", "This grades all submissions against the answer key and posts points to standings.", () => {
     state.quiz.scoresReleased = true; saveState(); toast("Scores released!");
@@ -1064,7 +1122,7 @@ function openSettings(){
   backdrop.querySelector("#s-import-file").onchange = e => {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => { try { state = JSON.parse(reader.result); saveState(); toast("Backup imported."); backdrop.remove(); } catch(err) { toast("Couldn't read that file."); } };
+    reader.onload = () => { try { state = migrateState(JSON.parse(reader.result)); saveState(); toast("Backup imported."); backdrop.remove(); } catch(err) { toast("Couldn't read that file."); } };
     reader.readAsText(file);
   };
   if (isOwner()) {
@@ -1094,7 +1152,7 @@ async function init(){
   try {
     const remote = await apiGetState();
     if (remote && (!state || (remote.meta && remote.meta.updatedAt >= (state.meta?state.meta.updatedAt:0)))) {
-      state = remote; LS.set("mgc_state", state);
+      state = migrateState(remote); LS.set("mgc_state", state);
     }
     setSyncOk(true);
   } catch(e) {
