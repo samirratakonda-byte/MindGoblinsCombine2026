@@ -89,10 +89,18 @@
   .std-head-label { font-size:8.5px; font-weight:700; text-transform:uppercase; letter-spacing:.02em; color:var(--text-muted); white-space:nowrap; }
   .std-team-name { max-width:108px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12.5px; }
   .std-cell { text-align:center; }
-  .std-pts { font-weight:800; font-size:13px; line-height:1.2; }
+  .std-pts { font-weight:800; font-size:13px; line-height:1.2; position:relative; display:inline-block; }
   .std-raw { font-size:9.5px; color:var(--text-muted); margin-top:1px; white-space:nowrap; }
-  .std-badge { font-size:10px; margin-left:1px; }
+  .std-badge { font-size:8px; position:absolute; top:-4px; right:-9px; line-height:1; }
   @media (max-width: 900px) { .std-table th, .std-table td { padding:4px 2px; } .std-head-label { display:none; } }
+  @media (max-width: 480px) {
+    .std-table th, .std-table td { padding:6px 1px; }
+    .std-team-name { max-width:60px; font-size:11px; }
+    .std-head-icon { font-size:13px; }
+    .std-pts { font-size:12px; }
+    .std-raw { font-size:8.5px; }
+    .std-badge { font-size:6.5px; top:-3px; right:-6px; }
+  }
   .team-col-label { font-size:11px; }
   .locked-box { text-align:center; padding:40px 16px; color:var(--text-muted); }
   .locked-box .lock-icon { font-size:36px; margin-bottom:10px; }
@@ -126,7 +134,7 @@ const DEFAULT_POINT_SCALE = [14,13,12,11,10,9,8,7,6,5,4,3,2,1];
 
 const TEAM_DEFS = [
   { id:"t1",  name:"Let a Naysayer Know",  role:"admin" },
-  { id:"t2",  name:"Team Kase",            role:"member", coOwnerCount:2 },
+  { id:"t2",  name:"Team Kase",            role:"member", coOwnerCount:2, coOwnerNames:["Flynn","Peb"] },
   { id:"t3",  name:"P Had Twoooo",         role:"member" },
   { id:"t4",  name:"Bu-Bu Bith-Booster",   role:"member" },
   { id:"t5",  name:"Pressed Unt",          role:"admin" },
@@ -142,6 +150,7 @@ const TEAM_DEFS = [
 ];
 const CHUCK_ID = "chuck";
 const SPECTATOR_ID = "spectator";
+const RAT_PACK_ID = "t8";
 const QUIZ_QUESTION_COUNT = 15;
 
 const EVENTS = [
@@ -159,7 +168,7 @@ const EVENTS = [
 
 const defaultState = () => ({
   leagueName: "Mind Goblins Combine",
-  teams: TEAM_DEFS.map(t => ({ id:t.id, name:t.name, role:t.role, coOwnerCount: t.coOwnerCount||1 })),
+  teams: TEAM_DEFS.map(t => ({ id:t.id, name:t.name, role:t.role, coOwnerCount: t.coOwnerCount||1, coOwnerNames: t.coOwnerNames||null })),
   contributor: { id: CHUCK_ID, name:"Chuck" },
   spectator: { id: SPECTATOR_ID, name:"Spectator" },
   pinHashes: {},
@@ -193,7 +202,19 @@ function migrateState(s){
   if (s.quiz && Array.isArray(s.quiz.questions)) {
     while (s.quiz.questions.length < QUIZ_QUESTION_COUNT) s.quiz.questions.push({ q:"", a:"" });
   }
+  if (s.teams) {
+    const kase = s.teams.find(t => t.id === "t2");
+    if (kase && !kase.coOwnerNames) kase.coOwnerNames = ["Flynn","Peb"];
+  }
   return s;
+}
+/* Format a timestamp in US Eastern time, e.g. "8/27, 3:04 PM ET" */
+function formatEastern(ts){
+  if (!ts) return null;
+  if (typeof ts !== "number") return "started"; // pre-migration data only had a boolean flag
+  try {
+    return new Date(ts).toLocaleString("en-US", { timeZone:"America/New_York", month:"numeric", day:"numeric", hour:"numeric", minute:"2-digit" }) + " ET";
+  } catch(e) { return "started"; }
 }
 let state = migrateState(LS.get("mgc_state", null));
 let myIdentityId = LS.get("mgc_myIdentityId", null);
@@ -253,6 +274,7 @@ function isOwner(){ return myRole() === "owner"; }
 function isAdmin(){ return myRole() === "owner" || myRole() === "admin"; }
 function isContributor(){ return myRole() === "contributor"; }
 function isSpectator(){ return myRole() === "spectator"; }
+function isRatPack(){ return myIdentityId === RAT_PACK_ID; }
 function teamById(id){ return state.teams.find(t => t.id === id); }
 function nameOf(id){ if (id === CHUCK_ID) return state.contributor.name; if (id === SPECTATOR_ID) return state.spectator.name; const t = teamById(id); return t ? t.name : "?"; }
 
@@ -528,7 +550,7 @@ function renderLoading(){
 /* ---------- Identity gate (team select + PIN) ---------- */
 function renderIdentityGate(){
   const ids = allIdentities();
-  const cards = ids.map(i => `<div class="id-card" data-id="${i.id}">${escapeHtml(i.name)}<span class="role-tag">${i.role}</span></div>`).join("");
+  const cards = ids.map(i => `<div class="id-card" data-id="${i.id}">${escapeHtml(i.name)}${i.role!=="spectator" ? `<span class="role-tag">${i.role}</span>` : ""}</div>`).join("");
   return `
   <div class="wrap" style="max-width:640px; padding-top:40px;">
     <div style="text-align:center; margin-bottom:18px;">
@@ -546,6 +568,7 @@ function bindIdentityGate(){
   });
 }
 function onIdentityPicked(id){
+  if (id === SPECTATOR_ID) { myIdentityId = id; LS.set("mgc_myIdentityId", id); render(); return; } // guest access — no PIN
   const hasPin = !!state.pinHashes[id];
   if (!hasPin) openSetPinModal(id);
   else openEnterPinModal(id);
@@ -755,11 +778,12 @@ function renderScoring(){
   const chips = EVENTS.map(ev => `<button class="event-chip ${activeScoringEvent===ev.id?'active':''}" data-ev="${ev.id}" style="${isCancelled(ev.id)?'text-decoration:line-through; opacity:.6;':''}">${ev.icon} ${escapeHtml(ev.name)}</button>`).join("");
   const ev = eventById(activeScoringEvent);
   const cancelled = isCancelled(ev.id);
+  const canResetThis = ev.id === "quiz" ? isRatPack() : true;
   const controls = `
     <div style="display:flex; gap:8px; margin-bottom:14px;">
       ${cancelled
         ? `<button class="btn secondary small" id="restore-event">Restore Event</button>`
-        : `<button class="btn secondary small" id="reset-event">Reset Scores</button>
+        : `${canResetThis ? `<button class="btn secondary small" id="reset-event">Reset Scores</button>` : ""}
            <button class="btn danger small" id="cancel-event">Cancel Event</button>`}
     </div>`;
   let body = "";
@@ -846,7 +870,7 @@ function renderScoringGolf(ev){
     const v = raw[t.id] || { subs: Array.from({length:subCount}, ()=>Array(18).fill(null)) };
     const subBlocks = v.subs.map((holes, si) => `
       <div style="margin-bottom:6px;">
-        ${subCount>1 ? `<div class="muted-note">Member ${si+1}</div>` : ""}
+        ${subCount>1 ? `<div class="muted-note">${escapeHtml((t.coOwnerNames && t.coOwnerNames[si]) || ("Member "+(si+1)))}</div>` : ""}
         <div class="golf-holes-row">
           ${holes.map((h,hi) => `<div class="golf-hole-cell"><label>${hi+1}</label><input class="hole-input" type="number" min="1" data-team="${t.id}" data-sub="${si}" data-hole="${hi}" value="${h ?? ''}"></div>`).join("")}
         </div>
@@ -917,7 +941,7 @@ function renderScoringQuiz(ev){
     const sub = q.submissions[t.id];
     const r = res ? res[t.id] : null;
     return `<tr><td>${escapeHtml(t.name)}</td>
-      <td class="ctr">${started[t.id] ? "▶️ started" : "—"}</td>
+      <td class="ctr">${started[t.id] ? "▶️ " + escapeHtml(formatEastern(started[t.id])) : "—"}</td>
       <td class="ctr">${sub ? "✅ submitted" : "—"}</td>
       <td class="num">${r ? r.display : "—"}</td><td class="num">${(r && r.points!=null) ? r.points : "—"}</td></tr>`;
   }).join("");
@@ -957,7 +981,7 @@ function bindQuizTab(){
   if (start) start.onclick = () => {
     confirmModal("Start the quiz?", "Once you start, this can't be undone from your side — only an admin can reset it. Make sure whoever's verifying is watching now.", () => {
       if (!q.started) q.started = {};
-      q.started[myIdentityId] = true;
+      q.started[myIdentityId] = Date.now();
       quizAnswerDraft = { answers: Array(q.questions.length).fill(""), bonus:"" };
       saveState(); toast("Quiz started!");
     });
