@@ -7,7 +7,7 @@ const DEFAULT_POINT_SCALE = [14,13,12,11,10,9,8,7,6,5,4,3,2,1];
 
 const TEAM_DEFS = [
   { id:"t1",  name:"Let a Naysayer Know",  role:"admin" },
-  { id:"t2",  name:"Team Kase",            role:"member", coOwnerCount:2 },
+  { id:"t2",  name:"Team Kase",            role:"member", coOwnerCount:2, coOwnerNames:["Flynn","Peb"] },
   { id:"t3",  name:"P Had Twoooo",         role:"member" },
   { id:"t4",  name:"Bu-Bu Bith-Booster",   role:"member" },
   { id:"t5",  name:"Pressed Unt",          role:"admin" },
@@ -25,7 +25,7 @@ const TEAM_DEFS = [
 function defaultState() {
   return {
     leagueName: "Mind Goblins Combine",
-    teams: TEAM_DEFS.map(t => ({ id: t.id, name: t.name, role: t.role, coOwnerCount: t.coOwnerCount || 1 })),
+    teams: TEAM_DEFS.map(t => ({ id: t.id, name: t.name, role: t.role, coOwnerCount: t.coOwnerCount || 1, coOwnerNames: t.coOwnerNames || null })),
     contributor: { id: "chuck", name: "Chuck" },
     spectator: { id: "spectator", name: "Spectator" },
     pinHashes: {},
