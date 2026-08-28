@@ -1502,6 +1502,11 @@ function openSettings(){
         </select>
         <button class="btn secondary small" data-resetpin="${t.id}">Reset PIN</button>
       </div>`).join("")}
+    <div class="field" style="display:flex; gap:8px; align-items:center;">
+      <input type="text" data-contributor-name value="${escapeHtml(state.contributor.name)}" style="flex:1;">
+      <span class="muted-note" style="width:110px;">Contributor</span>
+      <button class="btn secondary small" data-resetpin="${CHUCK_ID}">Reset PIN</button>
+    </div>
     <button class="btn secondary small" id="save-roles">Save team &amp; role changes</button>
   ` : "";
   const backdrop = el(`<div class="modal-backdrop"><div class="modal" style="max-width:560px;">
@@ -1535,6 +1540,8 @@ function openSettings(){
       let newOwnerId = null;
       backdrop.querySelectorAll("[data-role]").forEach(sel => { if (sel.value==="owner") newOwnerId = sel.dataset.role; });
       backdrop.querySelectorAll("[data-name]").forEach(inp => { const t = teamById(inp.dataset.name); if (t && inp.value.trim()) t.name = inp.value.trim(); });
+      const contribNameInp = backdrop.querySelector("[data-contributor-name]");
+      if (contribNameInp && contribNameInp.value.trim()) state.contributor.name = contribNameInp.value.trim();
       backdrop.querySelectorAll("[data-role]").forEach(sel => {
         const t = teamById(sel.dataset.role);
         if (!t) return;
