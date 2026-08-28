@@ -1014,12 +1014,15 @@ function ownerLabel(t, si){ return (t.coOwnerNames && t.coOwnerNames[si]) || ("M
 function renderScoringTime(ev){
   const res = computeEventResults(ev.id);
   const rows = state.teams.map(t => {
-    const pts = (res[t.id]&&res[t.id].points!=null) ? res[t.id].points : "—";
+    const r = res[t.id];
+    const pts = (r && r.points!=null) ? r.points : "—";
     if ((t.coOwnerCount||1) > 1) {
       const subs = ownerSubsRaw(ev.id, t); const subCount = t.coOwnerCount||1;
-      return Array.from({length:subCount}, (_,si) => `<tr><td style="padding-left:18px;">${escapeHtml(t.name)} — <span class="muted-note">${escapeHtml(ownerLabel(t,si))}</span></td>
+      const parentRow = `<tr><td>${escapeHtml(t.name)}</td><td class="num"><strong>${r ? escapeHtml(r.display) : "—"}</strong></td><td class="num">${pts}</td></tr>`;
+      const ownerRows = Array.from({length:subCount}, (_,si) => `<tr><td style="padding-left:18px;"><span class="muted-note">${escapeHtml(ownerLabel(t,si))}</span></td>
         <td class="num"><input type="text" placeholder="M:SS" data-raw="${t.id}" data-owner="${si}" value="${subs[si]!=null ? formatSeconds(subs[si]) : ''}"></td>
-        <td class="num">${si===0 ? pts : ""}</td></tr>`).join("");
+        <td class="num"></td></tr>`).join("");
+      return parentRow + ownerRows;
     }
     const v = (state.raw[ev.id]||{})[t.id];
     return `<tr><td>${escapeHtml(t.name)}</td>
@@ -1033,20 +1036,24 @@ function renderScoringSum3(ev){
   const res = computeEventResults(ev.id);
   const labels = ev.subLabels;
   const rows = state.teams.map(t => {
-    const pts = (res[t.id]&&res[t.id].points!=null) ? res[t.id].points : "—";
+    const r = res[t.id];
+    const pts = (r && r.points!=null) ? r.points : "—";
     if ((t.coOwnerCount||1) > 1) {
       const subs = ownerSubsRaw(ev.id, t); const subCount = t.coOwnerCount||1;
-      return Array.from({length:subCount}, (_,si) => {
+      const parentRow = `<tr><td>${escapeHtml(t.name)}</td><td class="num"></td><td class="num"></td><td class="num"></td>
+        <td class="num"><strong>${r && r.raw ? r.raw.sum : "—"}</strong></td><td class="num">${pts}</td></tr>`;
+      const ownerRows = Array.from({length:subCount}, (_,si) => {
         const p = subs[si] || {};
         const any = p.a!=null || p.b!=null || p.c!=null;
         const total = (p.a||0)+(p.b||0)+(p.c||0);
-        return `<tr><td style="padding-left:18px;">${escapeHtml(t.name)} — <span class="muted-note">${escapeHtml(ownerLabel(t,si))}</span></td>
+        return `<tr><td style="padding-left:18px;"><span class="muted-note">${escapeHtml(ownerLabel(t,si))}</span></td>
           <td class="num"><input type="number" data-raw="${t.id}" data-owner="${si}" data-sub="a" value="${p.a ?? ''}"></td>
           <td class="num"><input type="number" data-raw="${t.id}" data-owner="${si}" data-sub="b" value="${p.b ?? ''}"></td>
           <td class="num"><input type="number" data-raw="${t.id}" data-owner="${si}" data-sub="c" value="${p.c ?? ''}"></td>
           <td class="num muted-note">${any ? total : "—"}</td>
-          <td class="num">${si===0 ? pts : ""}</td></tr>`;
+          <td class="num"></td></tr>`;
       }).join("");
+      return parentRow + ownerRows;
     }
     const v = raw[t.id] || {};
     const anyEntered = v.a!=null || v.b!=null || v.c!=null;
@@ -1063,12 +1070,15 @@ function renderScoringSum3(ev){
 function renderScoringMakes(ev){
   const res = computeEventResults(ev.id);
   const rows = state.teams.map(t => {
-    const pts = (res[t.id]&&res[t.id].points!=null) ? res[t.id].points : "—";
+    const r = res[t.id];
+    const pts = (r && r.points!=null) ? r.points : "—";
     if ((t.coOwnerCount||1) > 1) {
       const subs = ownerSubsRaw(ev.id, t); const subCount = t.coOwnerCount||1;
-      return Array.from({length:subCount}, (_,si) => `<tr><td style="padding-left:18px;">${escapeHtml(t.name)} — <span class="muted-note">${escapeHtml(ownerLabel(t,si))}</span></td>
+      const parentRow = `<tr><td>${escapeHtml(t.name)}</td><td class="num"><strong>${r ? escapeHtml(r.display) : "—"}</strong></td><td class="num">${pts}</td></tr>`;
+      const ownerRows = Array.from({length:subCount}, (_,si) => `<tr><td style="padding-left:18px;"><span class="muted-note">${escapeHtml(ownerLabel(t,si))}</span></td>
         <td class="num"><input type="number" min="0" data-raw="${t.id}" data-owner="${si}" value="${subs[si] ?? ''}"></td>
-        <td class="num">${si===0 ? pts : ""}</td></tr>`).join("");
+        <td class="num"></td></tr>`).join("");
+      return parentRow + ownerRows;
     }
     const v = (state.raw[ev.id]||{})[t.id];
     return `<tr><td>${escapeHtml(t.name)}</td>
