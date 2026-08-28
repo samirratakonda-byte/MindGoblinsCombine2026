@@ -871,6 +871,17 @@ function renderQuizTab(){
         <table><thead><tr><th>Team</th><th>Answer</th><th class="ctr">✓</th></tr></thead><tbody>${rows}</tbody></table>
       </div>`;
     }).join("");
+    const tbRows = state.teams.map(t => {
+      const sub = q.submissions[t.id];
+      const guess = sub && typeof sub.bonus === "number" ? sub.bonus : null;
+      const diff = (guess!=null && typeof q.bonusA === "number") ? Math.abs(guess - q.bonusA) : null;
+      return `<tr><td>${escapeHtml(t.name)}</td><td>${sub ? (guess!=null ? escapeHtml(String(guess)) : '<span class="muted-note">(blank)</span>') : '<span class="muted-note">no submission</span>'}</td><td class="ctr muted-note">${diff!=null ? diff : "—"}</td></tr>`;
+    }).join("");
+    const tiebreakerHtml = `<div class="quiz-q-block">
+      <strong style="font-size:13px;">${escapeHtml(q.bonusQ || "(tiebreaker question)")}</strong>
+      <p class="muted-note" style="margin:4px 0 8px;">Correct answer: <strong>${q.bonusA!=null ? escapeHtml(String(q.bonusA)) : "—"}</strong></p>
+      <table><thead><tr><th>Team</th><th>Guess</th><th class="ctr">Off by</th></tr></thead><tbody>${tbRows}</tbody></table>
+    </div>`;
     return `<div class="card"><h2>🧠 Ball Knowledge Quiz — Results</h2>
       <p class="desc">Scores are in! Full points breakdown is also on the Standings tab.</p>
       ${(r && r.points!=null) ? `<div class="badge good" style="font-size:14px; padding:8px 14px;">You got ${escapeHtml(String(r.display))} correct — ${r.points} points</div>` : '<p class="muted-note">No submission on file for your team.</p>'}
@@ -880,6 +891,9 @@ function renderQuizTab(){
       <hr class="sep">
       <h3>All answers</h3>
       ${qBlocks}
+      <hr class="sep">
+      <h3>Tiebreaker</h3>
+      ${tiebreakerHtml}
     </div>`;
   }
   if (mySub) {
