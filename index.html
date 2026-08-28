@@ -658,6 +658,7 @@ function generateTeams(eventId){
 let activeTab = "standings";
 let activeScoringEvent = EVENTS[0].id;
 let quizAnswerDraft = null;
+let quizAuthorDraft = null;
 
 function el(html){ const d=document.createElement("div"); d.innerHTML=html; return d.firstElementChild; }
 function escapeHtml(str){ return String(str).replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
@@ -846,12 +847,6 @@ function renderQuizTab(){
   const mySub = state.teams.find(t=>t.id===myIdentityId) ? q.submissions[myIdentityId] : null;
   const hasStarted = !!q.started[myIdentityId];
 
-  if (!q.released) {
-    return `<div class="card"><h2>🧠 Ball Knowledge Quiz</h2>
-      <div class="locked-box"><div class="lock-icon">🔒</div>Quiz hasn't been released yet.</div>
-      ${isAdmin() ? `<div style="text-align:center;"><button class="btn" id="release-quiz">Release Quiz</button></div>` : ""}
-    </div>`;
-  }
   if (q.scoresReleased) {
     const r = computeQuizResults()[myIdentityId];
     const stats = computeQuizQuestionStats();
@@ -919,20 +914,28 @@ function renderQuizTab(){
 }
 function renderQuizAuthor(){
   const q = state.quiz;
-  const qBlocks = q.questions.map((qq,i) => `
+  if (!quizAuthorDraft) {
+    quizAuthorDraft = {
+      questions: q.questions.map(qq => ({ q: qq.q, a: qq.a })),
+      bonusQ: q.bonusQ,
+      bonusA: q.bonusA
+    };
+  }
+  const d = quizAuthorDraft;
+  const qBlocks = d.questions.map((qq,i) => `
     <div class="quiz-q-block">
       <div class="field"><label>Question ${i+1}</label><input type="text" data-qq="${i}" value="${escapeHtml(qq.q)}" placeholder="Question text"></div>
       <div class="field"><label>Correct answer</label><input type="text" data-qa="${i}" value="${escapeHtml(qq.a)}" placeholder="Answer key"></div>
     </div>`).join("");
   return `<div class="card">
     <h2>🧠 Ball Knowledge Quiz — Author view (Chuck only)</h2>
-    <p class="desc">Nobody else can see this page's content. Fill in your ${q.questions.length} questions + answer key, and the tiebreaker.</p>
+    <p class="desc">Nobody else can see this page's content. Fill in your ${d.questions.length} questions + answer key, and the tiebreaker.</p>
     ${qBlocks}
     <hr class="sep">
-    <div class="field"><label>Tiebreaker question</label><input type="text" id="bonus-q" value="${escapeHtml(q.bonusQ)}" placeholder="e.g. How many rushing yards did Derrick Henry have last season?"></div>
-    <div class="field"><label>Tiebreaker correct numeric answer</label><input type="number" id="bonus-a" value="${q.bonusA ?? ''}"></div>
+    <div class="field"><label>Tiebreaker question</label><input type="text" id="bonus-q" value="${escapeHtml(d.bonusQ)}" placeholder="e.g. How many rushing yards did Derrick Henry have last season?"></div>
+    <div class="field"><label>Tiebreaker correct numeric answer</label><input type="number" id="bonus-a" value="${d.bonusA ?? ''}"></div>
     <button class="btn" id="save-quiz">Save Quiz</button>
-    <p class="muted-note" style="margin-top:10px;">Status: ${q.released ? "Released to teams" : "Not yet released"} ${q.scoresReleased ? " · Scores released" : ""}</p>
+    <p class="muted-note" style="margin-top:10px;">${q.scoresReleased ? "Scores released" : "Scores not yet released"}</p>
   </div>`;
 }
 
@@ -1180,7 +1183,7 @@ function renderScoringQuiz(ev){
       <td class="num">${r ? r.display : "—"}</td><td class="num">${(r && r.points!=null) ? r.points : "—"}</td></tr>`;
   }).join("");
   return `
-  <p class="muted-note">Quiz status: ${q.released?"released":"not released"} · ${startedCount}/${state.teams.length} started · ${submittedCount}/${state.teams.length} submitted · ${q.scoresReleased?"scores released":"scores not released"}</p>
+  <p class="muted-note">Quiz status: ${startedCount}/${state.teams.length} started · ${submittedCount}/${state.teams.length} submitted · ${q.scoresReleased?"scores released":"scores not released"}</p>
   ${!q.scoresReleased ? `<button class="btn" id="release-scores">Release Scores</button>` : ""}
   <table style="margin-top:12px;"><thead><tr><th>Team</th><th class="ctr">Started</th><th class="ctr">Submitted</th><th class="num">Correct</th><th class="num">Points</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
@@ -1196,24 +1199,28 @@ function bindShell(){
 }
 
 function bindQuizTab(){
-  const q = state.quiz;
   if (isContributor()) {
+    if (!quizAuthorDraft) return;
+    document.querySelectorAll("[data-qq]").forEach(inp => { inp.oninput = () => { quizAuthorDraft.questions[inp.dataset.qq].q = inp.value; }; });
+    document.querySelectorAll("[data-qa]").forEach(inp => { inp.oninput = () => { quizAuthorDraft.questions[inp.dataset.qa].a = inp.value; }; });
+    const bq = document.getElementById("bonus-q");
+    if (bq) bq.oninput = () => { quizAuthorDraft.bonusQ = bq.value; };
+    const ba = document.getElementById("bonus-a");
+    if (ba) ba.oninput = () => { quizAuthorDraft.bonusA = ba.value === "" ? null : Number(ba.value); };
     const save = document.getElementById("save-quiz");
     if (save) save.onclick = () => {
-      document.querySelectorAll("[data-qq]").forEach(inp => { q.questions[inp.dataset.qq].q = inp.value; });
-      document.querySelectorAll("[data-qa]").forEach(inp => { q.questions[inp.dataset.qa].a = inp.value; });
-      q.bonusQ = document.getElementById("bonus-q").value;
-      const ba = document.getElementById("bonus-a").value;
-      q.bonusA = ba === "" ? null : Number(ba);
+      const d = quizAuthorDraft;
+      state.quiz.questions.forEach((qq,i) => { qq.q = d.questions[i].q; qq.a = d.questions[i].a; });
+      state.quiz.bonusQ = d.bonusQ;
+      state.quiz.bonusA = d.bonusA;
       saveState(); toast("Quiz saved.");
     };
     return;
   }
-  const rel = document.getElementById("release-quiz");
-  if (rel) rel.onclick = () => { q.released = true; saveState(); toast("Quiz released!"); };
   const start = document.getElementById("start-quiz");
   if (start) start.onclick = () => {
     confirmModal("Start the quiz?", "Once you start, this can't be undone from your side — only an admin can reset it. Make sure whoever's verifying is watching now.", () => {
+      const q = state.quiz;
       if (!q.started) q.started = {};
       q.started[myIdentityId] = Date.now();
       quizAnswerDraft = { answers: Array(q.questions.length).fill(""), bonus:"" };
@@ -1226,6 +1233,7 @@ function bindQuizTab(){
   const submit = document.getElementById("submit-quiz");
   if (submit) submit.onclick = () => {
     confirmModal("Submit quiz?", "You can only submit once — make sure your answers are final.", () => {
+      const q = state.quiz;
       q.submissions[myIdentityId] = { answers: quizAnswerDraft.answers.slice(), bonus: Number(quizAnswerDraft.bonus), submittedAt: Date.now() };
       quizAnswerDraft = null;
       saveState(); toast("Quiz submitted!");
